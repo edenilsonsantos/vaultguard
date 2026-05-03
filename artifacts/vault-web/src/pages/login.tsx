@@ -26,8 +26,8 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const DEMO_USERS = [
-  { label: "Admin", username: "master", password: "Otopodomundo182*", email: "master@local.com" },
-  { label: "Usuário", username: "demo", password: 'DC9H"lz70O\\8aa', email: "demo@local.com" },
+  { label: "Admin", username: "demo_admin", password: 'DC9H"lz70O\\8aa', email: "demo_admin@local.com" },
+  { label: "Usuário", username: "demo_user", password: 'DC9H"lz70O\\8aa', email: "demo_user@local.com" },
 ];
 
 export default function Login() {
