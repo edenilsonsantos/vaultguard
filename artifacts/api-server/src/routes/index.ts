@@ -1,8 +1,20 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import authRouter from "./auth";
+import usersRouter from "./users";
+import vaultRouter from "./vault";
+import apiKeysRouter from "./apikeys";
+import certificatesRouter from "./certificates";
+import logsRouter from "./logs";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
+router.use(usersRouter);
+router.use(vaultRouter);
+router.use(apiKeysRouter);
+router.use(certificatesRouter);
+router.use(logsRouter);
 
 export default router;

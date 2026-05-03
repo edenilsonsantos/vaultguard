@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Password Vault API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: vault
+    description: Vault items
+  - name: apikeys
+    description: API key management
+  - name: certificates
+    description: Certificate management
+  - name: logs
+    description: Audit logs
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +35,485 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Auth
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/change-password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordBody"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # Users
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (for access control)
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserSummary"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Vault Items
+  /vault:
+    get:
+      operationId: listVaultItems
+      tags: [vault]
+      summary: List vault items accessible to current user
+      responses:
+        "200":
+          description: List of vault items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VaultItemSummary"
+
+    post:
+      operationId: createVaultItem
+      tags: [vault]
+      summary: Create a new vault item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVaultItemBody"
+      responses:
+        "201":
+          description: Created vault item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultItem"
+
+  /vault/{id}:
+    get:
+      operationId: getVaultItem
+      tags: [vault]
+      summary: Get a vault item with its entries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vault item with entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultItem"
+        "403":
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateVaultItem
+      tags: [vault]
+      summary: Update a vault item (name, category, entries, access)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVaultItemBody"
+      responses:
+        "200":
+          description: Updated vault item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultItem"
+
+    delete:
+      operationId: deleteVaultItem
+      tags: [vault]
+      summary: Delete a vault item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /vault/stats:
+    get:
+      operationId: getVaultStats
+      tags: [vault]
+      summary: Get vault statistics summary
+      responses:
+        "200":
+          description: Vault statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultStats"
+
+  # API Keys
+  /apikeys:
+    get:
+      operationId: listApiKeys
+      tags: [apikeys]
+      summary: List API keys for current user
+      responses:
+        "200":
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKey"
+
+    post:
+      operationId: createApiKey
+      tags: [apikeys]
+      summary: Generate a new API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyBody"
+      responses:
+        "201":
+          description: Created API key (raw value shown only once)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyCreated"
+
+  /apikeys/{id}:
+    delete:
+      operationId: revokeApiKey
+      tags: [apikeys]
+      summary: Revoke an API key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Revoked
+
+  # Certificates
+  /certificates:
+    get:
+      operationId: listCertificates
+      tags: [certificates]
+      summary: List certificates for current user
+      responses:
+        "200":
+          description: List of certificates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Certificate"
+
+    post:
+      operationId: generateCertificate
+      tags: [certificates]
+      summary: Generate a new client certificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCertificateBody"
+      responses:
+        "201":
+          description: Certificate generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertificateCreated"
+
+  /certificates/{id}:
+    delete:
+      operationId: revokeCertificate
+      tags: [certificates]
+      summary: Revoke a certificate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Revoked
+
+  /certificates/{id}/download:
+    get:
+      operationId: downloadCertificate
+      tags: [certificates]
+      summary: Download certificate bundle (PEM) — web UI only
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Certificate PEM file download info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertificateDownload"
+        "403":
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # Audit Logs
+  /logs:
+    get:
+      operationId: listAuditLogs
+      tags: [logs]
+      summary: List audit logs (last 30 days)
+      parameters:
+        - name: vaultItemId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: userId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogPage"
+
+  /logs/stats:
+    get:
+      operationId: getAuditStats
+      tags: [logs]
+      summary: Audit log statistics (top accessed, recent activity)
+      responses:
+        "200":
+          description: Audit stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +524,497 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # Auth schemas
+    RegisterBody:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        fullName:
+          type: string
+      required:
+        - username
+        - email
+        - password
+        - fullName
+
+    LoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    ChangePasswordBody:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+      required:
+        - currentPassword
+        - newPassword
+
+    # User schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - username
+        - email
+        - fullName
+        - role
+        - createdAt
+        - updatedAt
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+      required:
+        - id
+        - username
+        - email
+        - fullName
+        - role
+
+    UpdateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+
+    # Vault schemas
+    VaultEntry:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      required:
+        - key
+        - value
+
+    VaultItemSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        accessControl:
+          type: string
+        entryCount:
+          type: integer
+        createdBy:
+          type: integer
+        createdByUsername:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - description
+        - accessControl
+        - entryCount
+        - createdBy
+        - createdByUsername
+        - createdAt
+        - updatedAt
+
+    VaultItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        accessControl:
+          type: string
+        allowedUserIds:
+          type: array
+          items:
+            type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/VaultEntry"
+        createdBy:
+          type: integer
+        createdByUsername:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - description
+        - accessControl
+        - allowedUserIds
+        - entries
+        - createdBy
+        - createdByUsername
+        - createdAt
+        - updatedAt
+
+    CreateVaultItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        accessControl:
+          type: string
+        allowedUserIds:
+          type: array
+          items:
+            type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/VaultEntry"
+      required:
+        - name
+        - category
+        - accessControl
+        - entries
+
+    UpdateVaultItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        accessControl:
+          type: string
+        allowedUserIds:
+          type: array
+          items:
+            type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/VaultEntry"
+
+    VaultStats:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+        credentialCount:
+          type: integer
+        globalVarCount:
+          type: integer
+        totalEntries:
+          type: integer
+        accessibleToMe:
+          type: integer
+      required:
+        - totalItems
+        - credentialCount
+        - globalVarCount
+        - totalEntries
+        - accessibleToMe
+
+    # API Key schemas
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        keyPrefix:
+          type: string
+        isActive:
+          type: boolean
+        lastUsedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - keyPrefix
+        - isActive
+        - lastUsedAt
+        - createdAt
+
+    CreateApiKeyBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    ApiKeyCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        keyPrefix:
+          type: string
+        rawKey:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - keyPrefix
+        - rawKey
+        - createdAt
+
+    # Certificate schemas
+    Certificate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        fingerprint:
+          type: string
+        isActive:
+          type: boolean
+        expiresAt:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - fingerprint
+        - isActive
+        - expiresAt
+        - createdAt
+
+    GenerateCertificateBody:
+      type: object
+      properties:
+        name:
+          type: string
+        validityDays:
+          type: integer
+      required:
+        - name
+        - validityDays
+
+    CertificateCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        fingerprint:
+          type: string
+        isActive:
+          type: boolean
+        expiresAt:
+          type: string
+        createdAt:
+          type: string
+        pemBundle:
+          type: string
+      required:
+        - id
+        - name
+        - fingerprint
+        - isActive
+        - expiresAt
+        - createdAt
+        - pemBundle
+
+    CertificateDownload:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        pemBundle:
+          type: string
+        fingerprint:
+          type: string
+      required:
+        - id
+        - name
+        - pemBundle
+        - fingerprint
+
+    # Audit Log schemas
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        username:
+          type: string
+        vaultItemId:
+          type: integer
+        vaultItemName:
+          type: string
+        action:
+          type: string
+        ipAddress:
+          type: ["string", "null"]
+        userAgent:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - username
+        - vaultItemId
+        - vaultItemName
+        - action
+        - ipAddress
+        - userAgent
+        - createdAt
+
+    AuditLogPage:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+      required:
+        - logs
+        - total
+        - page
+        - pageSize
+
+    AuditStats:
+      type: object
+      properties:
+        totalAccesses:
+          type: integer
+        uniqueUsers:
+          type: integer
+        topAccessedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopAccessedItem"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+      required:
+        - totalAccesses
+        - uniqueUsers
+        - topAccessedItems
+        - recentActivity
+
+    TopAccessedItem:
+      type: object
+      properties:
+        vaultItemId:
+          type: integer
+        vaultItemName:
+          type: string
+        accessCount:
+          type: integer
+      required:
+        - vaultItemId
+        - vaultItemName
+        - accessCount

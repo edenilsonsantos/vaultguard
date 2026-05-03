@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Password Vault"
+version = "1.0.0"
+id = "artifacts/vault-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20293
+
+[services.development]
+run = "pnpm --filter @workspace/vault-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vault-web", "run", "build" ]
+publicDir = "artifacts/vault-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20293"
+BASE_PATH = "/"
