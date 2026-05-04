@@ -12,8 +12,8 @@ export interface AuthPayload {
   role: string;
 }
 
-export function generateToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
+export function generateToken(payload: AuthPayload & Record<string, unknown>, expiresIn = "24h"): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions);
 }
 
 export function verifyToken(token: string): AuthPayload | null {

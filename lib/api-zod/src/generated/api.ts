@@ -39,10 +39,15 @@ export const LoginResponse = zod.object({
     email: zod.string(),
     fullName: zod.string(),
     role: zod.string(),
+    isActive: zod.boolean(),
+    requiresPasswordReset: zod.boolean(),
+    totpEnabled: zod.boolean(),
     createdAt: zod.string(),
     updatedAt: zod.string(),
   }),
   token: zod.string(),
+  requiresTwoFactor: zod.boolean().optional(),
+  tempToken: zod.string().optional(),
 });
 
 /**
@@ -61,6 +66,9 @@ export const GetMeResponse = zod.object({
   email: zod.string(),
   fullName: zod.string(),
   role: zod.string(),
+  isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean(),
+  totpEnabled: zod.boolean(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -78,7 +86,102 @@ export const ChangePasswordResponse = zod.object({
 });
 
 /**
- * @summary List all users (for access control)
+ * @summary Check if a username requires a password reset
+ */
+export const CheckPasswordResetQueryParams = zod.object({
+  username: zod.coerce.string(),
+});
+
+export const CheckPasswordResetResponse = zod.object({
+  requiresReset: zod.boolean(),
+  isActive: zod.boolean(),
+});
+
+/**
+ * @summary Set new password after admin reset (no auth required)
+ */
+export const SetInitialPasswordBody = zod.object({
+  username: zod.string(),
+  newPassword: zod.string(),
+});
+
+export const SetInitialPasswordResponse = zod.object({
+  user: zod.object({
+    id: zod.number(),
+    username: zod.string(),
+    email: zod.string(),
+    fullName: zod.string(),
+    role: zod.string(),
+    isActive: zod.boolean(),
+    requiresPasswordReset: zod.boolean(),
+    totpEnabled: zod.boolean(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  }),
+  token: zod.string(),
+  requiresTwoFactor: zod.boolean().optional(),
+  tempToken: zod.string().optional(),
+});
+
+/**
+ * @summary Generate a TOTP secret and QR code for 2FA setup
+ */
+export const SetupTwoFactorResponse = zod.object({
+  secret: zod.string(),
+  qrCodeUrl: zod.string(),
+  otpauthUrl: zod.string(),
+});
+
+/**
+ * @summary Confirm TOTP OTP and enable 2FA
+ */
+export const ConfirmTwoFactorBody = zod.object({
+  otp: zod.string(),
+});
+
+export const ConfirmTwoFactorResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Disable 2FA for the current user
+ */
+export const DisableTwoFactorBody = zod.object({
+  otp: zod.string(),
+});
+
+export const DisableTwoFactorResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Verify TOTP OTP to complete login
+ */
+export const VerifyTwoFactorBody = zod.object({
+  tempToken: zod.string(),
+  otp: zod.string(),
+});
+
+export const VerifyTwoFactorResponse = zod.object({
+  user: zod.object({
+    id: zod.number(),
+    username: zod.string(),
+    email: zod.string(),
+    fullName: zod.string(),
+    role: zod.string(),
+    isActive: zod.boolean(),
+    requiresPasswordReset: zod.boolean(),
+    totpEnabled: zod.boolean(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+  }),
+  token: zod.string(),
+  requiresTwoFactor: zod.boolean().optional(),
+  tempToken: zod.string().optional(),
+});
+
+/**
+ * @summary List all users
  */
 export const ListUsersResponseItem = zod.object({
   id: zod.number(),
@@ -86,6 +189,9 @@ export const ListUsersResponseItem = zod.object({
   email: zod.string(),
   fullName: zod.string(),
   role: zod.string(),
+  isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean(),
+  totpEnabled: zod.boolean(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
 
@@ -102,6 +208,9 @@ export const GetUserResponse = zod.object({
   email: zod.string(),
   fullName: zod.string(),
   role: zod.string(),
+  isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean(),
+  totpEnabled: zod.boolean(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -125,8 +234,9 @@ export const UpdateUserResponse = zod.object({
   email: zod.string(),
   fullName: zod.string(),
   role: zod.string(),
-  createdAt: zod.string(),
-  updatedAt: zod.string(),
+  isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean(),
+  totpEnabled: zod.boolean(),
 });
 
 /**
@@ -134,6 +244,35 @@ export const UpdateUserResponse = zod.object({
  */
 export const DeleteUserParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Force password reset for a user (admin only)
+ */
+export const ResetUserPasswordParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResetUserPasswordResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Toggle user active status (admin only)
+ */
+export const ToggleUserActiveParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ToggleUserActiveResponse = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+  email: zod.string(),
+  fullName: zod.string(),
+  role: zod.string(),
+  isActive: zod.boolean(),
+  requiresPasswordReset: zod.boolean(),
+  totpEnabled: zod.boolean(),
 });
 
 /**
@@ -197,7 +336,7 @@ export const GetVaultItemResponse = zod.object({
 });
 
 /**
- * @summary Update a vault item (name, category, entries, access)
+ * @summary Update a vault item
  */
 export const UpdateVaultItemParams = zod.object({
   id: zod.coerce.number(),
@@ -312,7 +451,7 @@ export const RevokeCertificateParams = zod.object({
 });
 
 /**
- * @summary Download certificate bundle (PEM) — web UI only
+ * @summary Download certificate bundle (PEM)
  */
 export const DownloadCertificateParams = zod.object({
   id: zod.coerce.number(),
@@ -328,14 +467,11 @@ export const DownloadCertificateResponse = zod.object({
 /**
  * @summary List audit logs (last 30 days)
  */
-export const listAuditLogsQueryPageDefault = 1;
-export const listAuditLogsQueryPageSizeDefault = 50;
-
 export const ListAuditLogsQueryParams = zod.object({
-  vaultItemId: zod.coerce.number().nullish(),
-  userId: zod.coerce.number().nullish(),
-  page: zod.coerce.number().default(listAuditLogsQueryPageDefault),
-  pageSize: zod.coerce.number().default(listAuditLogsQueryPageSizeDefault),
+  vaultItemId: zod.coerce.number().optional(),
+  userId: zod.coerce.number().optional(),
+  page: zod.coerce.number().optional(),
+  pageSize: zod.coerce.number().optional(),
 });
 
 export const ListAuditLogsResponse = zod.object({
@@ -383,4 +519,29 @@ export const GetAuditStatsResponse = zod.object({
       createdAt: zod.string(),
     }),
   ),
+});
+
+/**
+ * @summary Get all application settings (admin only)
+ */
+export const GetSettingsResponseItem = zod.object({
+  key: zod.string(),
+  value: zod.string(),
+});
+export const GetSettingsResponse = zod.array(GetSettingsResponseItem);
+
+/**
+ * @summary Update a setting value (admin only)
+ */
+export const UpdateSettingParams = zod.object({
+  key: zod.coerce.string(),
+});
+
+export const UpdateSettingBody = zod.object({
+  value: zod.string(),
+});
+
+export const UpdateSettingResponse = zod.object({
+  key: zod.string(),
+  value: zod.string(),
 });

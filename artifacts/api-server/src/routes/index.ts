@@ -6,6 +6,7 @@ import vaultRouter from "./vault";
 import apiKeysRouter from "./apikeys";
 import certificatesRouter from "./certificates";
 import logsRouter from "./logs";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(vaultRouter);
 router.use(apiKeysRouter);
 router.use(certificatesRouter);
 router.use(logsRouter);
+router.use(settingsRouter);
 
 export default router;

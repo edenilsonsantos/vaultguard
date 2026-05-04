@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
+import type { User } from "@workspace/api-client-react";
 
 type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
+  user: User | undefined;
   login: (token: string) => void;
   logout: () => void;
 };
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading: isUserLoading && !!token, login: handleLogin, logout: handleLogout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading: isUserLoading && !!token, user, login: handleLogin, logout: handleLogout }}>
       {children}
     </AuthContext.Provider>
   );

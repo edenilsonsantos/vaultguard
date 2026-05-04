@@ -42,24 +42,33 @@ lib/
 
 - **Two vault item categories**: `credencial` (values masked) and `variavel_global` (values visible)
 - **Vault items**: key-value dictionaries with granular access control ("all" or specific users)
+- **AES-256-CBC encryption at rest** for all vault entry values
 - **30-day audit logs**: all accesses logged (user, datetime, IP, user agent, vault item)
 - **Strong password policy**: 12+ chars, uppercase, lowercase, number, special char
 - **Per-user API key generation** (stored as SHA-256 hash, shown raw once)
 - **Client certificate generation** (RSA 2048, node-forge) + PEM download via web UI
 - **JWT auth** (24h expiry, stored in localStorage as `vault_token`)
+- **Per-user TOTP 2FA** (otplib v13, QR code via `qrcode`): setup/confirm/disable on Profile page; 2FA step on login
+- **Admin password reset**: admin resets a user's password from Users page → user must set new password on next login (blur-triggered dialog on login page)
+- **Enable/Disable users**: admin can toggle user `is_active`; disabled users cannot log in; guard prevents disabling the last active admin
+- **Settings page** (admin only): toggle `show_demo_credentials` to show/hide the demo credential cards on the login page
+- **Username blur → check reset**: on login page, when username field loses focus, calls `GET /api/auth/check-reset?username=` and shows mandatory password reset dialog if required
 
 ## Pre-seeded Users
 
-| Role  | Username | Email             | Password           |
-|-------|----------|-------------------|--------------------|
-| Admin | master   | master@local.com  | Otopodomundo182*   |
-| User  | demo     | demo@local.com    | DC9H"lz70O\8aa     |
+| Role  | Username    | Email                  | Password           |
+|-------|-------------|------------------------|--------------------|
+| Admin | master      | master@local.com       | Otopodomundo182*   |
+| Admin | demo_admin  | demo_admin@local.com   | DC9H"lz70O\8aa     |
+| User  | demo        | demo@local.com         | DC9H"lz70O\8aa     |
+| User  | demo_user   | demo_user@local.com    | DC9H"lz70O\8aa     |
 
-Both are shown on the login screen as clickable demo credential cards.
+Demo admin and demo_user are shown on the login screen as clickable demo credential cards (toggled by settings).
 
 ## DB Schema (lib/db/src/schema/)
 
-- `users` — id, username, email, password_hash, full_name, role
+- `users` — id, username, email, password_hash, full_name, role, **is_active**, **requires_password_reset**, **totp_secret**, **totp_enabled**
+- `settings` — id, key (unique), value
 - `api_keys` — id, user_id, name, key_hash, key_prefix, is_active, last_used_at
 - `certificates` — id, user_id, name, public_key, private_key, fingerprint, is_active, expires_at
 - `vault_items` — id, name, category, description, access_control, created_by
@@ -70,11 +79,22 @@ Both are shown on the login screen as clickable demo credential cards.
 ## API Routes
 
 - `POST /api/auth/register` — register (password strength enforced)
-- `POST /api/auth/login` — login → returns JWT token
+- `POST /api/auth/login` — login → JWT or `{ requiresTwoFactor, tempToken }` or `{ requiresPasswordReset }`
 - `POST /api/auth/logout`
 - `GET /api/auth/me` — current user (requires JWT)
 - `POST /api/auth/change-password` — (requires JWT, strong password)
+- `GET /api/auth/check-reset?username=` — public; returns `{ requiresReset, isActive }`
+- `POST /api/auth/set-password` — public; body `{ username, newPassword }`; clears requiresPasswordReset
+- `POST /api/auth/2fa/setup` — generates TOTP secret + QR code (requires JWT)
+- `POST /api/auth/2fa/confirm` — body `{ otp }`; activates 2FA (requires JWT)
+- `POST /api/auth/2fa/disable` — body `{ otp }`; disables 2FA (requires JWT)
+- `POST /api/auth/2fa/verify` — body `{ tempToken, otp }`; completes 2FA login (public)
+- `GET /api/users` — list users with is_active, requires_password_reset, totp_enabled (admin)
 - `GET/PATCH/DELETE /api/users/:id` — user management (admin for PATCH/DELETE)
+- `POST /api/users/:id/reset-password` — admin resets user password (sets requires_password_reset)
+- `PATCH /api/users/:id/toggle-active` — admin enable/disable user (guards ≥1 active admin)
+- `GET /api/settings` — list settings (public)
+- `PATCH /api/settings` — body `{ key, value }` (admin)
 - `GET/POST /api/vault` — list/create vault items
 - `GET /api/vault/stats` — stats (total items, entries, accessible)
 - `GET/PATCH/DELETE /api/vault/:id` — read/update/delete (access-controlled, logs on GET)

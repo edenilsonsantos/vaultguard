@@ -29,12 +29,45 @@ export interface LoginBody {
   password: string;
 }
 
+export interface ChangePasswordBody {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface CheckResetResponse {
+  requiresReset: boolean;
+  isActive: boolean;
+}
+
+export interface SetPasswordBody {
+  username: string;
+  newPassword: string;
+}
+
+export interface TwoFactorSetup {
+  secret: string;
+  qrCodeUrl: string;
+  otpauthUrl: string;
+}
+
+export interface ConfirmTwoFactorBody {
+  otp: string;
+}
+
+export interface VerifyTwoFactorBody {
+  tempToken: string;
+  otp: string;
+}
+
 export interface User {
   id: number;
   username: string;
   email: string;
   fullName: string;
   role: string;
+  isActive: boolean;
+  requiresPasswordReset: boolean;
+  totpEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,11 +75,8 @@ export interface User {
 export interface AuthResponse {
   user: User;
   token: string;
-}
-
-export interface ChangePasswordBody {
-  currentPassword: string;
-  newPassword: string;
+  requiresTwoFactor?: boolean;
+  tempToken?: string;
 }
 
 export interface UserSummary {
@@ -55,6 +85,9 @@ export interface UserSummary {
   email: string;
   fullName: string;
   role: string;
+  isActive: boolean;
+  requiresPasswordReset: boolean;
+  totpEnabled: boolean;
 }
 
 export interface UpdateUserBody {
@@ -212,15 +245,22 @@ export interface AuditStats {
   recentActivity: AuditLog[];
 }
 
+export interface Setting {
+  key: string;
+  value: string;
+}
+
+export interface UpdateSettingBody {
+  value: string;
+}
+
+export type CheckPasswordResetParams = {
+  username: string;
+};
+
 export type ListAuditLogsParams = {
-  /**
-   * @nullable
-   */
-  vaultItemId?: number | null;
-  /**
-   * @nullable
-   */
-  userId?: number | null;
+  vaultItemId?: number;
+  userId?: number;
   page?: number;
   pageSize?: number;
 };

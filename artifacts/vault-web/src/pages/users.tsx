@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { useListUsers, useUpdateUser, useDeleteUser, getListUsersQueryKey } from "@workspace/api-client-react";
+import {
+  useListUsers,
+  useUpdateUser,
+  useDeleteUser,
+  useResetUserPassword,
+  useToggleUserActive,
+  getListUsersQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ShieldAlert, Trash2, Edit } from "lucide-react";
-import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { Shield, ShieldAlert, Trash2, KeyRound, RotateCcw } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -33,36 +40,49 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Users() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: users, isLoading } = useListUsers();
-  
+
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
+  const resetPasswordMutation = useResetUserPassword();
+  const toggleActiveMutation = useToggleUserActive();
 
   const [search, setSearch] = useState("");
-  const [userToDelete, setUserToDelete] = useState<{id: number, name: string} | null>(null);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [userToReset, setUserToReset] = useState<{ id: number; name: string } | null>(null);
 
-  const filteredUsers = users?.filter(user => 
-    user.username.toLowerCase().includes(search.toLowerCase()) || 
-    user.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase())
+  const filteredUsers = users?.filter(
+    (user) =>
+      user.username.toLowerCase().includes(search.toLowerCase()) ||
+      user.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      user.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+  }
 
   const handleRoleChange = (id: number, newRole: string) => {
     updateUserMutation.mutate(
       { id, data: { role: newRole } },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-          toast({ title: "Role updated", description: "User permissions have been modified." });
+          invalidate();
+          toast({ title: "Perfil atualizado", description: "As permissões do usuário foram modificadas." });
         },
         onError: () => {
-          toast({ variant: "destructive", title: "Update failed", description: "Could not modify user role." });
-        }
+          toast({ variant: "destructive", title: "Falha na atualização", description: "Não foi possível alterar o perfil." });
+        },
       }
     );
   };
@@ -73,14 +93,54 @@ export default function Users() {
       { id: userToDelete.id },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-          toast({ title: "User removed", description: "Identity has been deleted from the system." });
+          invalidate();
+          toast({ title: "Usuário removido", description: "Identidade excluída do sistema." });
           setUserToDelete(null);
         },
         onError: () => {
-          toast({ variant: "destructive", title: "Deletion failed", description: "Could not remove user." });
+          toast({ variant: "destructive", title: "Falha na exclusão", description: "Não foi possível remover o usuário." });
           setUserToDelete(null);
-        }
+        },
+      }
+    );
+  };
+
+  const handleResetPassword = () => {
+    if (!userToReset) return;
+    resetPasswordMutation.mutate(
+      { id: userToReset.id },
+      {
+        onSuccess: (res) => {
+          invalidate();
+          toast({ title: "Senha redefinida", description: res.message });
+          setUserToReset(null);
+        },
+        onError: (err) => {
+          toast({ variant: "destructive", title: "Falha", description: (err.data as any)?.error || "Não foi possível redefinir a senha." });
+          setUserToReset(null);
+        },
+      }
+    );
+  };
+
+  const handleToggleActive = (id: number, currentActive: boolean, name: string) => {
+    toggleActiveMutation.mutate(
+      { id },
+      {
+        onSuccess: (user) => {
+          invalidate();
+          toast({
+            title: user.isActive ? "Usuário ativado" : "Usuário desativado",
+            description: `@${name} foi ${user.isActive ? "ativado" : "desativado"} com sucesso.`,
+          });
+        },
+        onError: (err) => {
+          toast({
+            variant: "destructive",
+            title: "Operação bloqueada",
+            description: (err.data as any)?.error || "Não foi possível alterar o status.",
+          });
+        },
       }
     );
   };
@@ -88,16 +148,16 @@ export default function Users() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Identity Management</h1>
-        <p className="text-muted-foreground">Control access and roles for all system users.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Identidades</h1>
+        <p className="text-muted-foreground">Controle acesso, perfis e status dos usuários do sistema.</p>
       </div>
 
       <Card>
         <CardHeader className="pb-4 border-b border-border">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-            <CardTitle>System Users</CardTitle>
-            <Input 
-              placeholder="Search users..." 
+            <CardTitle>Usuários do sistema</CardTitle>
+            <Input
+              placeholder="Buscar usuários..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="max-w-sm bg-background"
@@ -108,94 +168,174 @@ export default function Users() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Perfil</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : filteredUsers?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                    No users found matching your search.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers?.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{user.fullName}</span>
-                        <span className="text-xs text-muted-foreground">@{user.username}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Select 
-                        defaultValue={user.role} 
-                        onValueChange={(val) => handleRoleChange(user.id, val)}
-                        disabled={updateUserMutation.isPending}
-                      >
-                        <SelectTrigger className="w-32 h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">
-                            <div className="flex items-center">
-                              <Shield className="w-3 h-3 mr-2" /> User
+              {isLoading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                      <TableCell className="text-center"><Skeleton className="h-5 w-10 mx-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
+                : filteredUsers?.length === 0
+                ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        Nenhum usuário encontrado.
+                      </TableCell>
+                    </TableRow>
+                  )
+                : filteredUsers?.map((user) => (
+                    <TableRow key={user.id} className={!user.isActive ? "opacity-60" : ""}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{user.fullName}</span>
+                          <span className="text-xs text-muted-foreground">@{user.username}</span>
+                          {user.requiresPasswordReset && (
+                            <span className="text-xs text-amber-500 flex items-center gap-1 mt-0.5">
+                              <KeyRound className="w-3 h-3" /> Redefinição pendente
+                            </span>
+                          )}
+                          {user.totpEnabled && (
+                            <span className="text-xs text-primary/70 flex items-center gap-1 mt-0.5">
+                              <Shield className="w-3 h-3" /> 2FA ativo
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          defaultValue={user.role}
+                          onValueChange={(val) => handleRoleChange(user.id, val)}
+                          disabled={updateUserMutation.isPending}
+                        >
+                          <SelectTrigger className="w-32 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">
+                              <div className="flex items-center">
+                                <Shield className="w-3 h-3 mr-2" /> Usuário
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="admin">
+                              <div className="flex items-center text-destructive">
+                                <ShieldAlert className="w-3 h-3 mr-2" /> Admin
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-sm font-mono">{user.email}</TableCell>
+                      <TableCell className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex justify-center">
+                              <Switch
+                                checked={user.isActive}
+                                onCheckedChange={(checked) =>
+                                  handleToggleActive(user.id, checked, user.username)
+                                }
+                                disabled={toggleActiveMutation.isPending}
+                                className="data-[state=checked]:bg-primary"
+                              />
                             </div>
-                          </SelectItem>
-                          <SelectItem value="admin">
-                            <div className="flex items-center text-destructive">
-                              <ShieldAlert className="w-3 h-3 mr-2" /> Admin
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-sm font-mono">
-                      {user.email}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setUserToDelete({id: user.id, name: user.username})}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {user.isActive ? "Desativar usuário" : "Ativar usuário"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                                onClick={() => setUserToReset({ id: user.id, name: user.username })}
+                                disabled={resetPasswordMutation.isPending}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Redefinir senha</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setUserToDelete({ id: user.id, name: user.username })}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Excluir usuário</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
+      {/* Delete confirmation */}
       <AlertDialog open={userToDelete !== null} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete user <strong>@{userToDelete?.name}</strong>? 
-              This will instantly remove their access to the system.
+              Tem certeza que deseja excluir <strong>@{userToDelete?.name}</strong>? Esta ação remove
+              o acesso imediatamente e não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete User
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset password confirmation */}
+      <AlertDialog open={userToReset !== null} onOpenChange={(open) => !open && setUserToReset(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-amber-500" />
+              Redefinir senha
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A senha de <strong>@{userToReset?.name}</strong> será apagada. Na próxima vez que o
+              usuário informar o nome de conta e sair do campo, será solicitado que defina uma nova
+              senha forte. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetPassword}
+              className="bg-amber-500 text-white hover:bg-amber-600"
+            >
+              Redefinir senha
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

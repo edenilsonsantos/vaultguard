@@ -21,6 +21,8 @@ tags:
     description: Certificate management
   - name: logs
     description: Audit logs
+  - name: settings
+    description: Application settings
 
 paths:
   /healthz:
@@ -81,7 +83,7 @@ paths:
               $ref: "#/components/schemas/LoginBody"
       responses:
         "200":
-          description: Login successful
+          description: Login successful or 2FA required
           content:
             application/json:
               schema:
@@ -150,12 +152,144 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /auth/check-reset:
+    get:
+      operationId: checkPasswordReset
+      tags: [auth]
+      summary: Check if a username requires a password reset
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reset status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResetResponse"
+
+  /auth/set-password:
+    post:
+      operationId: setInitialPassword
+      tags: [auth]
+      summary: Set new password after admin reset (no auth required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetPasswordBody"
+      responses:
+        "200":
+          description: Password set, JWT returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/2fa/setup:
+    post:
+      operationId: setupTwoFactor
+      tags: [auth]
+      summary: Generate a TOTP secret and QR code for 2FA setup
+      responses:
+        "200":
+          description: 2FA setup info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorSetup"
+
+  /auth/2fa/confirm:
+    post:
+      operationId: confirmTwoFactor
+      tags: [auth]
+      summary: Confirm TOTP OTP and enable 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmTwoFactorBody"
+      responses:
+        "200":
+          description: 2FA enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/2fa/disable:
+    post:
+      operationId: disableTwoFactor
+      tags: [auth]
+      summary: Disable 2FA for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmTwoFactorBody"
+      responses:
+        "200":
+          description: 2FA disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/2fa/verify:
+    post:
+      operationId: verifyTwoFactor
+      tags: [auth]
+      summary: Verify TOTP OTP to complete login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyTwoFactorBody"
+      responses:
+        "200":
+          description: Login complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid OTP or temp token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # Users
   /users:
     get:
       operationId: listUsers
       tags: [users]
-      summary: List all users (for access control)
+      summary: List all users
       responses:
         "200":
           description: List of users
@@ -213,7 +347,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/UserSummary"
 
     delete:
       operationId: deleteUser
@@ -228,6 +362,56 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /users/{id}/reset-password:
+    post:
+      operationId: resetUserPassword
+      tags: [users]
+      summary: Force password reset for a user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Password reset flagged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/toggle-active:
+    patch:
+      operationId: toggleUserActive
+      tags: [users]
+      summary: Toggle user active status (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSummary"
+        "400":
+          description: Cannot disable last active admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # Vault Items
   /vault:
@@ -297,7 +481,7 @@ paths:
     patch:
       operationId: updateVaultItem
       tags: [vault]
-      summary: Update a vault item (name, category, entries, access)
+      summary: Update a vault item
       parameters:
         - name: id
           in: path
@@ -447,7 +631,7 @@ paths:
     get:
       operationId: downloadCertificate
       tags: [certificates]
-      summary: Download certificate bundle (PEM) — web UI only
+      summary: Download certificate bundle (PEM)
       parameters:
         - name: id
           in: path
@@ -478,24 +662,22 @@ paths:
         - name: vaultItemId
           in: query
           schema:
-            type: ["integer", "null"]
+            type: integer
         - name: userId
           in: query
           schema:
-            type: ["integer", "null"]
+            type: integer
         - name: page
           in: query
           schema:
             type: integer
-            default: 1
         - name: pageSize
           in: query
           schema:
             type: integer
-            default: 50
       responses:
         "200":
-          description: Audit logs
+          description: Audit log page
           content:
             application/json:
               schema:
@@ -514,6 +696,47 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuditStats"
 
+  # Settings
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get all application settings (admin only)
+      responses:
+        "200":
+          description: List of settings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Setting"
+
+  /settings/{key}:
+    put:
+      operationId: updateSetting
+      tags: [settings]
+      summary: Update a setting value (admin only)
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingBody"
+      responses:
+        "200":
+          description: Updated setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+
 components:
   schemas:
     HealthStatus:
@@ -521,24 +744,21 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
 
     MessageResponse:
       type: object
       properties:
         message:
           type: string
-      required:
-        - message
+      required: [message]
 
     # Auth schemas
     RegisterBody:
@@ -552,11 +772,7 @@ components:
           type: string
         fullName:
           type: string
-      required:
-        - username
-        - email
-        - password
-        - fullName
+      required: [username, email, password, fullName]
 
     LoginBody:
       type: object
@@ -565,20 +781,7 @@ components:
           type: string
         password:
           type: string
-      required:
-        - username
-        - password
-
-    AuthResponse:
-      type: object
-      properties:
-        user:
-          $ref: "#/components/schemas/User"
-        token:
-          type: string
-      required:
-        - user
-        - token
+      required: [username, password]
 
     ChangePasswordBody:
       type: object
@@ -587,11 +790,66 @@ components:
           type: string
         newPassword:
           type: string
-      required:
-        - currentPassword
-        - newPassword
+      required: [currentPassword, newPassword]
 
-    # User schemas
+    CheckResetResponse:
+      type: object
+      properties:
+        requiresReset:
+          type: boolean
+        isActive:
+          type: boolean
+      required: [requiresReset, isActive]
+
+    SetPasswordBody:
+      type: object
+      properties:
+        username:
+          type: string
+        newPassword:
+          type: string
+      required: [username, newPassword]
+
+    TwoFactorSetup:
+      type: object
+      properties:
+        secret:
+          type: string
+        qrCodeUrl:
+          type: string
+        otpauthUrl:
+          type: string
+      required: [secret, qrCodeUrl, otpauthUrl]
+
+    ConfirmTwoFactorBody:
+      type: object
+      properties:
+        otp:
+          type: string
+      required: [otp]
+
+    VerifyTwoFactorBody:
+      type: object
+      properties:
+        tempToken:
+          type: string
+        otp:
+          type: string
+      required: [tempToken, otp]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+        requiresTwoFactor:
+          type: boolean
+        tempToken:
+          type: string
+      required: [user, token]
+
     User:
       type: object
       properties:
@@ -605,6 +863,12 @@ components:
           type: string
         role:
           type: string
+        isActive:
+          type: boolean
+        requiresPasswordReset:
+          type: boolean
+        totpEnabled:
+          type: boolean
         createdAt:
           type: string
         updatedAt:
@@ -615,6 +879,9 @@ components:
         - email
         - fullName
         - role
+        - isActive
+        - requiresPasswordReset
+        - totpEnabled
         - createdAt
         - updatedAt
 
@@ -631,12 +898,21 @@ components:
           type: string
         role:
           type: string
+        isActive:
+          type: boolean
+        requiresPasswordReset:
+          type: boolean
+        totpEnabled:
+          type: boolean
       required:
         - id
         - username
         - email
         - fullName
         - role
+        - isActive
+        - requiresPasswordReset
+        - totpEnabled
 
     UpdateUserBody:
       type: object
@@ -656,9 +932,7 @@ components:
           type: string
         value:
           type: string
-      required:
-        - key
-        - value
+      required: [key, value]
 
     VaultItemSummary:
       type: object
@@ -1018,3 +1292,20 @@ components:
         - vaultItemId
         - vaultItemName
         - accessCount
+
+    # Settings schemas
+    Setting:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      required: [key, value]
+
+    UpdateSettingBody:
+      type: object
+      properties:
+        value:
+          type: string
+      required: [value]

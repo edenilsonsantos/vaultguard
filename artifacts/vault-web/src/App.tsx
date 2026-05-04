@@ -15,6 +15,7 @@ import VaultDetail from "@/pages/vault/[id]";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Logs from "@/pages/logs";
+import Settings from "@/pages/settings";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,12 @@ function Router() {
       <Route path="/logs">
         <ProtectedRoute>
           <Logs />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/settings">
+        <ProtectedRoute>
+          <Settings />
         </ProtectedRoute>
       </Route>
 
