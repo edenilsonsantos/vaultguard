@@ -40,9 +40,13 @@ lib/
 
 ## Features
 
-- **Two vault item categories**: `credencial` (values masked) and `variavel_global` (values visible)
+- **Two vault item categories**: `credencial` (values masked in browser, real values only via API key) and `variavel_global` (values always visible)
 - **Vault items**: key-value dictionaries with granular access control ("all" or specific users)
-- **AES-256-CBC encryption at rest** for all vault entry values
+- **VM/Host-based API access control**: each vault item has `allowedHostsMode` ("all" or "specific") and `allowedHosts` (string[]) — when accessing via API key, the server checks the requester's IP against the allowed hosts list
+- **Credential protection in browser**: values of `credencial` items are NEVER returned for browser (JWT) sessions — always `[PROTEGIDO]`; real values only returned via API key auth with a permitted IP
+- **Full edit mode on vault detail page**: all fields editable (name, category, description, access control, allowed users, allowed hosts, entries)
+- **AES-256-CBC encryption at rest** for all vault entry values; empty value in update = keep existing encrypted value
+- **Dual auth middleware**: `requireAuthOrApiKey` — accepts `X-API-Key` header (SHA-256 hashed, validated against api_keys table) OR `Authorization: Bearer` JWT
 - **30-day audit logs**: all accesses logged (user, datetime, IP, user agent, vault item)
 - **Strong password policy**: 12+ chars, uppercase, lowercase, number, special char
 - **Per-user API key generation** (stored as SHA-256 hash, shown raw once)
@@ -53,6 +57,7 @@ lib/
 - **Enable/Disable users**: admin can toggle user `is_active`; disabled users cannot log in; guard prevents disabling the last active admin
 - **Settings page** (admin only): toggle `show_demo_credentials` to show/hide the demo credential cards on the login page
 - **Username blur → check reset**: on login page, when username field loses focus, calls `GET /api/auth/check-reset?username=` and shows mandatory password reset dialog if required
+- **Public manual pages** (no auth): `/manual` (browser operations manual in PT-BR with mock UI screenshots) and `/api-manual` (API reference with curl/Python/Node.js examples)
 
 ## Pre-seeded Users
 
@@ -71,7 +76,7 @@ Demo admin and demo_user are shown on the login screen as clickable demo credent
 - `settings` — id, key (unique), value
 - `api_keys` — id, user_id, name, key_hash, key_prefix, is_active, last_used_at
 - `certificates` — id, user_id, name, public_key, private_key, fingerprint, is_active, expires_at
-- `vault_items` — id, name, category, description, access_control, created_by
+- `vault_items` — id, name, category, description, access_control, **allowed_hosts_mode**, **allowed_hosts** (JSON array string), created_by
 - `vault_entries` — id, vault_item_id, key, encrypted_value (AES-256-CBC)
 - `vault_item_access` — vault_item_id, user_id (for specific access control)
 - `audit_logs` — id, user_id, vault_item_id, action, ip_address, user_agent, created_at

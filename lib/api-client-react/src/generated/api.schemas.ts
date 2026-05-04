@@ -108,6 +108,8 @@ export interface VaultItemSummary {
   /** @nullable */
   description: string | null;
   accessControl: string;
+  allowedHostsMode: string;
+  allowedHosts: string[];
   entryCount: number;
   createdBy: number;
   createdByUsername: string;
@@ -123,6 +125,8 @@ export interface VaultItem {
   description: string | null;
   accessControl: string;
   allowedUserIds: number[];
+  allowedHostsMode: string;
+  allowedHosts: string[];
   entries: VaultEntry[];
   createdBy: number;
   createdByUsername: string;
@@ -137,6 +141,8 @@ export interface CreateVaultItemBody {
   description?: string | null;
   accessControl: string;
   allowedUserIds?: number[];
+  allowedHostsMode?: string;
+  allowedHosts?: string[];
   entries: VaultEntry[];
 }
 
@@ -147,6 +153,8 @@ export interface UpdateVaultItemBody {
   description?: string | null;
   accessControl?: string;
   allowedUserIds?: number[];
+  allowedHostsMode?: string;
+  allowedHosts?: string[];
   entries?: VaultEntry[];
 }
 

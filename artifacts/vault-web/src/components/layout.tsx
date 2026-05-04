@@ -1,7 +1,10 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { Shield, LayoutDashboard, KeyRound, Users, Activity, UserCircle, LogOut, Settings } from "lucide-react";
+import {
+  Shield, LayoutDashboard, KeyRound, Users, Activity, UserCircle,
+  LogOut, Settings, BookOpen, Code2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -16,6 +19,11 @@ export function Layout({ children }: { children: ReactNode }) {
     ...(isAdmin ? [{ name: "Usuários", href: "/users", icon: Users }] : []),
   ];
 
+  const publicLinks = [
+    { name: "Manual de Operação", href: "/manual", icon: BookOpen },
+    { name: "Documentação da API", href: "/api-manual", icon: Code2 },
+  ];
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* Sidebar */}
@@ -25,7 +33,8 @@ export function Layout({ children }: { children: ReactNode }) {
           <span className="font-bold text-lg tracking-tight">VaultGuard</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-4">
+        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6">
+          {/* Sistema nav */}
           <div className="space-y-1">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-2">
               Sistema
@@ -33,6 +42,32 @@ export function Layout({ children }: { children: ReactNode }) {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-accent/5 hover:text-foreground"
+                  )}
+                >
+                  <Icon className="w-4 h-4 mr-3" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Documentação nav */}
+          <div className="space-y-1">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-2">
+              Documentação
+            </div>
+            {publicLinks.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.startsWith(item.href);
               return (
                 <Link
                   key={item.href}

@@ -284,6 +284,8 @@ export const ListVaultItemsResponseItem = zod.object({
   category: zod.string(),
   description: zod.string().nullable(),
   accessControl: zod.string(),
+  allowedHostsMode: zod.string(),
+  allowedHosts: zod.array(zod.string()),
   entryCount: zod.number(),
   createdBy: zod.number(),
   createdByUsername: zod.string(),
@@ -301,6 +303,8 @@ export const CreateVaultItemBody = zod.object({
   description: zod.string().nullish(),
   accessControl: zod.string(),
   allowedUserIds: zod.array(zod.number()).optional(),
+  allowedHostsMode: zod.string().optional(),
+  allowedHosts: zod.array(zod.string()).optional(),
   entries: zod.array(
     zod.object({
       key: zod.string(),
@@ -323,6 +327,8 @@ export const GetVaultItemResponse = zod.object({
   description: zod.string().nullable(),
   accessControl: zod.string(),
   allowedUserIds: zod.array(zod.number()),
+  allowedHostsMode: zod.string(),
+  allowedHosts: zod.array(zod.string()),
   entries: zod.array(
     zod.object({
       key: zod.string(),
@@ -348,6 +354,8 @@ export const UpdateVaultItemBody = zod.object({
   description: zod.string().nullish(),
   accessControl: zod.string().optional(),
   allowedUserIds: zod.array(zod.number()).optional(),
+  allowedHostsMode: zod.string().optional(),
+  allowedHosts: zod.array(zod.string()).optional(),
   entries: zod
     .array(
       zod.object({
@@ -365,6 +373,8 @@ export const UpdateVaultItemResponse = zod.object({
   description: zod.string().nullable(),
   accessControl: zod.string(),
   allowedUserIds: zod.array(zod.number()),
+  allowedHostsMode: zod.string(),
+  allowedHosts: zod.array(zod.string()),
   entries: zod.array(
     zod.object({
       key: zod.string(),

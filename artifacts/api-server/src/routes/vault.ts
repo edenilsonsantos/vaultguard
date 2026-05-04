@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { IRouter } from "express";
 import { db, vaultItemsTable, vaultEntriesTable, vaultItemAccessTable, usersTable } from "@workspace/db";
 import { eq, and, or, inArray, sql, count, desc } from "drizzle-orm";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireAuthOrApiKey } from "../lib/auth";
 import { encryptValue, decryptValue } from "../lib/crypto";
 import { CreateVaultItemBody, UpdateVaultItemBody } from "@workspace/api-zod";
 import { auditLogsTable } from "@workspace/db";
@@ -31,6 +31,76 @@ async function logAccess(vaultItemId: number, userId: number, req: any): Promise
   });
 }
 
+function isHostAllowed(allowedHostsMode: string, allowedHosts: string | null, clientIp: string | undefined): boolean {
+  if (allowedHostsMode === "all") return true;
+  if (!clientIp || !allowedHosts) return false;
+  try {
+    const hosts = JSON.parse(allowedHosts) as string[];
+    const normalizedIp = clientIp.replace(/^::ffff:/, "");
+    return hosts.some((h) => h.trim() === clientIp || h.trim() === normalizedIp);
+  } catch {
+    return false;
+  }
+}
+
+function parseAllowedHosts(allowedHosts: string | null): string[] {
+  if (!allowedHosts) return [];
+  try {
+    return JSON.parse(allowedHosts) as string[];
+  } catch {
+    return [];
+  }
+}
+
+function formatVaultItemSummary(
+  item: typeof vaultItemsTable.$inferSelect,
+  entryCount: number,
+  creatorUsername: string
+) {
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    description: item.description ?? null,
+    accessControl: item.accessControl,
+    allowedHostsMode: item.allowedHostsMode,
+    allowedHosts: parseAllowedHosts(item.allowedHosts),
+    entryCount,
+    createdBy: item.createdBy,
+    createdByUsername: creatorUsername,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  };
+}
+
+function formatVaultItem(
+  item: typeof vaultItemsTable.$inferSelect,
+  entries: { key: string; encryptedValue: string }[],
+  allowedUserIds: number[],
+  creatorUsername: string,
+  isApiKeyAccess: boolean
+) {
+  const isCredential = item.category === "credencial";
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    description: item.description ?? null,
+    accessControl: item.accessControl,
+    allowedUserIds,
+    allowedHostsMode: item.allowedHostsMode,
+    allowedHosts: parseAllowedHosts(item.allowedHosts),
+    entries: entries.map((e) => ({
+      key: e.key,
+      value: isCredential && !isApiKeyAccess ? "[PROTEGIDO]" : decryptValue(e.encryptedValue),
+    })),
+    createdBy: item.createdBy,
+    createdByUsername: creatorUsername,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  };
+}
+
 router.get("/vault", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   const allItems = await db.select().from(vaultItemsTable);
@@ -51,18 +121,7 @@ router.get("/vault", requireAuth, async (req, res): Promise<void> => {
         .from(vaultEntriesTable)
         .where(eq(vaultEntriesTable.vaultItemId, item.id));
       const creator = await db.select().from(usersTable).where(eq(usersTable.id, item.createdBy));
-      return {
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        description: item.description ?? null,
-        accessControl: item.accessControl,
-        entryCount: entries.length,
-        createdBy: item.createdBy,
-        createdByUsername: creator[0]?.username ?? "unknown",
-        createdAt: item.createdAt.toISOString(),
-        updatedAt: item.updatedAt.toISOString(),
-      };
+      return formatVaultItemSummary(item, entries.length, creator[0]?.username ?? "unknown");
     })
   );
 
@@ -99,11 +158,24 @@ router.post("/vault", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const { name, category, description, accessControl, allowedUserIds, entries } = parsed.data;
+  const { name, category, description, accessControl, allowedUserIds, allowedHostsMode, allowedHosts, entries } = parsed.data;
+
+  const hostsMode = allowedHostsMode ?? "all";
+  const hostsJson = hostsMode === "specific" && allowedHosts && allowedHosts.length > 0
+    ? JSON.stringify(allowedHosts)
+    : null;
 
   const [item] = await db
     .insert(vaultItemsTable)
-    .values({ name, category, description: description ?? null, accessControl: accessControl ?? "all", createdBy: req.user!.userId })
+    .values({
+      name,
+      category,
+      description: description ?? null,
+      accessControl: accessControl ?? "all",
+      allowedHostsMode: hostsMode,
+      allowedHosts: hostsJson,
+      createdBy: req.user!.userId,
+    })
     .returning();
 
   if (entries && entries.length > 0) {
@@ -126,22 +198,10 @@ router.post("/vault", requireAuth, async (req, res): Promise<void> => {
   const accessRows = await db.select().from(vaultItemAccessTable).where(eq(vaultItemAccessTable.vaultItemId, item.id));
   const creator = await db.select().from(usersTable).where(eq(usersTable.id, item.createdBy));
 
-  res.status(201).json({
-    id: item.id,
-    name: item.name,
-    category: item.category,
-    description: item.description ?? null,
-    accessControl: item.accessControl,
-    allowedUserIds: accessRows.map((a) => a.userId),
-    entries: entryRows.map((e) => ({ key: e.key, value: decryptValue(e.encryptedValue) })),
-    createdBy: item.createdBy,
-    createdByUsername: creator[0]?.username ?? "unknown",
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
-  });
+  res.status(201).json(formatVaultItem(item, entryRows, accessRows.map((a) => a.userId), creator[0]?.username ?? "unknown", false));
 });
 
-router.get("/vault/:id", requireAuth, async (req, res): Promise<void> => {
+router.get("/vault/:id", requireAuthOrApiKey, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   if (isNaN(id)) {
@@ -152,14 +212,26 @@ router.get("/vault/:id", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   const canAccess = await canAccessVaultItem(id, userId);
   if (!canAccess) {
-    res.status(403).json({ error: "Access denied" });
+    res.status(403).json({ error: "Acesso negado" });
     return;
   }
 
   const [item] = await db.select().from(vaultItemsTable).where(eq(vaultItemsTable.id, id));
   if (!item) {
-    res.status(404).json({ error: "Vault item not found" });
+    res.status(404).json({ error: "Item não encontrado" });
     return;
+  }
+
+  if (req.isApiKeyAuth) {
+    const clientIp = req.ip;
+    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
+      res.status(403).json({
+        error: "Acesso via API não permitido para este host",
+        clientIp,
+        allowedHostsMode: item.allowedHostsMode,
+      });
+      return;
+    }
   }
 
   await logAccess(id, userId, req);
@@ -168,19 +240,13 @@ router.get("/vault/:id", requireAuth, async (req, res): Promise<void> => {
   const accessRows = await db.select().from(vaultItemAccessTable).where(eq(vaultItemAccessTable.vaultItemId, id));
   const creator = await db.select().from(usersTable).where(eq(usersTable.id, item.createdBy));
 
-  res.json({
-    id: item.id,
-    name: item.name,
-    category: item.category,
-    description: item.description ?? null,
-    accessControl: item.accessControl,
-    allowedUserIds: accessRows.map((a) => a.userId),
-    entries: entryRows.map((e) => ({ key: e.key, value: decryptValue(e.encryptedValue) })),
-    createdBy: item.createdBy,
-    createdByUsername: creator[0]?.username ?? "unknown",
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
-  });
+  res.json(formatVaultItem(
+    item,
+    entryRows,
+    accessRows.map((a) => a.userId),
+    creator[0]?.username ?? "unknown",
+    req.isApiKeyAuth ?? false
+  ));
 });
 
 router.patch("/vault/:id", requireAuth, async (req, res): Promise<void> => {
@@ -199,15 +265,32 @@ router.patch("/vault/:id", requireAuth, async (req, res): Promise<void> => {
 
   const [item] = await db.select().from(vaultItemsTable).where(eq(vaultItemsTable.id, id));
   if (!item) {
-    res.status(404).json({ error: "Vault item not found" });
+    res.status(404).json({ error: "Item não encontrado" });
     return;
   }
 
-  const updates: Partial<{ name: string; category: string; description: string | null; accessControl: string }> = {};
+  const updates: Partial<{
+    name: string;
+    category: string;
+    description: string | null;
+    accessControl: string;
+    allowedHostsMode: string;
+    allowedHosts: string | null;
+  }> = {};
+
   if (parsed.data.name != null) updates.name = parsed.data.name;
   if (parsed.data.category != null) updates.category = parsed.data.category;
   if (parsed.data.description !== undefined) updates.description = parsed.data.description ?? null;
   if (parsed.data.accessControl != null) updates.accessControl = parsed.data.accessControl;
+
+  if (parsed.data.allowedHostsMode != null) {
+    updates.allowedHostsMode = parsed.data.allowedHostsMode;
+    if (parsed.data.allowedHostsMode === "specific" && parsed.data.allowedHosts && parsed.data.allowedHosts.length > 0) {
+      updates.allowedHosts = JSON.stringify(parsed.data.allowedHosts);
+    } else if (parsed.data.allowedHostsMode === "all") {
+      updates.allowedHosts = null;
+    }
+  }
 
   const [updatedItem] = await db
     .update(vaultItemsTable)
@@ -216,13 +299,23 @@ router.patch("/vault/:id", requireAuth, async (req, res): Promise<void> => {
     .returning();
 
   if (parsed.data.entries !== undefined) {
+    const existingEntries = await db
+      .select()
+      .from(vaultEntriesTable)
+      .where(eq(vaultEntriesTable.vaultItemId, id));
+
+    const existingMap = new Map(existingEntries.map((e) => [e.key, e.encryptedValue]));
+
     await db.delete(vaultEntriesTable).where(eq(vaultEntriesTable.vaultItemId, id));
+
     if (parsed.data.entries.length > 0) {
       await db.insert(vaultEntriesTable).values(
         parsed.data.entries.map((e) => ({
           vaultItemId: id,
           key: e.key,
-          encryptedValue: encryptValue(e.value),
+          encryptedValue: e.value === "" && existingMap.has(e.key)
+            ? existingMap.get(e.key)!
+            : encryptValue(e.value),
         }))
       );
     }
@@ -243,19 +336,13 @@ router.patch("/vault/:id", requireAuth, async (req, res): Promise<void> => {
   const accessRows = await db.select().from(vaultItemAccessTable).where(eq(vaultItemAccessTable.vaultItemId, id));
   const creator = await db.select().from(usersTable).where(eq(usersTable.id, updatedItem.createdBy));
 
-  res.json({
-    id: updatedItem.id,
-    name: updatedItem.name,
-    category: updatedItem.category,
-    description: updatedItem.description ?? null,
-    accessControl: updatedItem.accessControl,
-    allowedUserIds: accessRows.map((a) => a.userId),
-    entries: entryRows.map((e) => ({ key: e.key, value: decryptValue(e.encryptedValue) })),
-    createdBy: updatedItem.createdBy,
-    createdByUsername: creator[0]?.username ?? "unknown",
-    createdAt: updatedItem.createdAt.toISOString(),
-    updatedAt: updatedItem.updatedAt.toISOString(),
-  });
+  res.json(formatVaultItem(
+    updatedItem,
+    entryRows,
+    accessRows.map((a) => a.userId),
+    creator[0]?.username ?? "unknown",
+    false
+  ));
 });
 
 router.delete("/vault/:id", requireAuth, async (req, res): Promise<void> => {

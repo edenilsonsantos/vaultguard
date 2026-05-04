@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { createHash } from "crypto";
 import type { Request, Response, NextFunction } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, apiKeysTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "vault-secret-key-change-in-prod";
@@ -10,6 +11,15 @@ export interface AuthPayload {
   userId: number;
   username: string;
   role: string;
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthPayload;
+      isApiKeyAuth?: boolean;
+    }
+  }
 }
 
 export function generateToken(payload: AuthPayload & Record<string, unknown>, expiresIn = "24h"): string {
@@ -41,14 +51,6 @@ export function validatePasswordStrength(password: string): boolean {
   return true;
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthPayload;
-    }
-  }
-}
-
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -70,6 +72,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   req.user = { userId: user.id, username: user.username, role: user.role };
+  req.isApiKeyAuth = false;
   next();
 }
 
@@ -81,4 +84,34 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     }
     next();
   });
+}
+
+export async function requireAuthOrApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const apiKeyHeader = (req.headers["x-api-key"] as string | undefined)
+    || (req.query["api_key"] as string | undefined);
+
+  if (apiKeyHeader) {
+    const keyHash = createHash("sha256").update(apiKeyHeader).digest("hex");
+    const [key] = await db.select().from(apiKeysTable).where(eq(apiKeysTable.keyHash, keyHash));
+
+    if (!key || !key.isActive) {
+      res.status(401).json({ error: "API key inválida ou inativa" });
+      return;
+    }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, key.userId));
+    if (!user || !user.isActive) {
+      res.status(401).json({ error: "Usuário não encontrado ou desativado" });
+      return;
+    }
+
+    await db.update(apiKeysTable).set({ lastUsedAt: new Date() }).where(eq(apiKeysTable.id, key.id));
+
+    req.user = { userId: user.id, username: user.username, role: user.role };
+    req.isApiKeyAuth = true;
+    next();
+    return;
+  }
+
+  await requireAuth(req, res, next);
 }

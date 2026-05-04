@@ -16,6 +16,8 @@ import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Logs from "@/pages/logs";
 import Settings from "@/pages/settings";
+import Manual from "@/pages/manual";
+import ApiManual from "@/pages/api-manual";
 
 const queryClient = new QueryClient();
 
@@ -24,53 +26,32 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      
-      <Route path="/">
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/vault">
-        <ProtectedRoute>
-          <VaultList />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/vault/new">
-        <ProtectedRoute>
-          <VaultNew />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/vault/:id">
-        <ProtectedRoute>
-          <VaultDetail />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/profile">
-        <ProtectedRoute>
-          <Profile />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/users">
-        <ProtectedRoute>
-          <Users />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route path="/logs">
-        <ProtectedRoute>
-          <Logs />
-        </ProtectedRoute>
-      </Route>
+      <Route path="/manual" component={Manual} />
+      <Route path="/api-manual" component={ApiManual} />
 
+      <Route path="/">
+        <ProtectedRoute><Dashboard /></ProtectedRoute>
+      </Route>
+      <Route path="/vault">
+        <ProtectedRoute><VaultList /></ProtectedRoute>
+      </Route>
+      <Route path="/vault/new">
+        <ProtectedRoute><VaultNew /></ProtectedRoute>
+      </Route>
+      <Route path="/vault/:id">
+        <ProtectedRoute><VaultDetail /></ProtectedRoute>
+      </Route>
+      <Route path="/profile">
+        <ProtectedRoute><Profile /></ProtectedRoute>
+      </Route>
+      <Route path="/users">
+        <ProtectedRoute><Users /></ProtectedRoute>
+      </Route>
+      <Route path="/logs">
+        <ProtectedRoute><Logs /></ProtectedRoute>
+      </Route>
       <Route path="/settings">
-        <ProtectedRoute>
-          <Settings />
-        </ProtectedRoute>
+        <ProtectedRoute><Settings /></ProtectedRoute>
       </Route>
 
       <Route component={NotFound} />

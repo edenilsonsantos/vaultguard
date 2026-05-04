@@ -947,6 +947,12 @@ components:
           type: ["string", "null"]
         accessControl:
           type: string
+        allowedHostsMode:
+          type: string
+        allowedHosts:
+          type: array
+          items:
+            type: string
         entryCount:
           type: integer
         createdBy:
@@ -963,6 +969,8 @@ components:
         - category
         - description
         - accessControl
+        - allowedHostsMode
+        - allowedHosts
         - entryCount
         - createdBy
         - createdByUsername
@@ -986,6 +994,12 @@ components:
           type: array
           items:
             type: integer
+        allowedHostsMode:
+          type: string
+        allowedHosts:
+          type: array
+          items:
+            type: string
         entries:
           type: array
           items:
@@ -1005,6 +1019,8 @@ components:
         - description
         - accessControl
         - allowedUserIds
+        - allowedHostsMode
+        - allowedHosts
         - entries
         - createdBy
         - createdByUsername
@@ -1026,6 +1042,12 @@ components:
           type: array
           items:
             type: integer
+        allowedHostsMode:
+          type: string
+        allowedHosts:
+          type: array
+          items:
+            type: string
         entries:
           type: array
           items:
@@ -1051,6 +1073,12 @@ components:
           type: array
           items:
             type: integer
+        allowedHostsMode:
+          type: string
+        allowedHosts:
+          type: array
+          items:
+            type: string
         entries:
           type: array
           items:

@@ -9,6 +9,8 @@ export const vaultItemsTable = pgTable("vault_items", {
   category: text("category").notNull(),
   description: text("description"),
   accessControl: text("access_control").notNull().default("all"),
+  allowedHostsMode: text("allowed_hosts_mode").notNull().default("all"),
+  allowedHosts: text("allowed_hosts"),
   createdBy: integer("created_by").notNull().references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
