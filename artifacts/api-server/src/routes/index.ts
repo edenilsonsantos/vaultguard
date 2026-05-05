@@ -7,9 +7,11 @@ import apiKeysRouter from "./apikeys";
 import certificatesRouter from "./certificates";
 import logsRouter from "./logs";
 import settingsRouter from "./settings";
+import swaggerRouter from "./swagger";
 
 const router: IRouter = Router();
 
+router.use(swaggerRouter);
 router.use(healthRouter);
 router.use(authRouter);
 router.use(usersRouter);

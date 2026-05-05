@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Shield, LayoutDashboard, KeyRound, Users, Activity, UserCircle,
-  LogOut, Settings, BookOpen, Code2, Menu, X,
+  LogOut, Settings, BookOpen, Code2, Menu, X, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -113,6 +113,15 @@ export function Layout({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+          <a
+            href="/api/swagger"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center px-3 py-2.5 text-sm rounded-md transition-colors text-muted-foreground hover:bg-accent/5 hover:text-foreground"
+          >
+            <ExternalLink className="w-4 h-4 mr-3" />
+            Swagger UI
+          </a>
         </div>
       </div>
 

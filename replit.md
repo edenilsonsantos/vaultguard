@@ -58,6 +58,8 @@ lib/
 - **Settings page** (admin only): toggle `show_demo_credentials` to show/hide the demo credential cards on the login page
 - **Username blur → check reset**: on login page, when username field loses focus, calls `GET /api/auth/check-reset?username=` and shows mandatory password reset dialog if required
 - **Public manual pages** (no auth): `/manual` (browser operations manual in PT-BR with mock UI screenshots) and `/api-manual` (API reference with curl/Python/Node.js examples)
+- **Swagger UI** (no auth to browse): `/api/swagger` — dark-themed Swagger UI (CDN) with full spec, examples and security schemes; spec JSON at `/api/swagger/spec`
+- **Dual-factor API auth**: `requireApiKeyAndCert` middleware — `X-API-Key` header + `X-Certificate` (fingerprint) header, both belonging to same user; **no IP restriction** when both are provided; `requireAuthOrApiKey` auto-detects and delegates to cert mode when both headers present
 
 ## Pre-seeded Users
 

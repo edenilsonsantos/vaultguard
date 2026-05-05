@@ -2,8 +2,8 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
 import type { Request, Response, NextFunction } from "express";
-import { db, usersTable, apiKeysTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, apiKeysTable, certificatesTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "vault-secret-key-change-in-prod";
 
@@ -18,6 +18,7 @@ declare global {
     interface Request {
       user?: AuthPayload;
       isApiKeyAuth?: boolean;
+      isCertAuth?: boolean;
     }
   }
 }
@@ -73,6 +74,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   req.user = { userId: user.id, username: user.username, role: user.role };
   req.isApiKeyAuth = false;
+  req.isCertAuth = false;
   next();
 }
 
@@ -86,9 +88,86 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
   });
 }
 
+/**
+ * Autenticação por API Key + Certificado (dois fatores para acesso programático).
+ * Ambos os headers X-API-Key e X-Certificate são obrigatórios.
+ * Ambos devem pertencer ao mesmo usuário ativo.
+ * Sem restrição por IP — a segurança é garantida pelos dois fatores.
+ */
+export async function requireApiKeyAndCert(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const apiKeyHeader = (req.headers["x-api-key"] as string | undefined)
+    || (req.query["api_key"] as string | undefined);
+  const certHeader = req.headers["x-certificate"] as string | undefined;
+
+  if (!apiKeyHeader || !certHeader) {
+    res.status(401).json({ error: "API Key e Certificado são obrigatórios (headers X-API-Key e X-Certificate)" });
+    return;
+  }
+
+  const keyHash = createHash("sha256").update(apiKeyHeader).digest("hex");
+  const [key] = await db.select().from(apiKeysTable).where(eq(apiKeysTable.keyHash, keyHash));
+
+  if (!key || !key.isActive) {
+    res.status(401).json({ error: "API key inválida ou inativa" });
+    return;
+  }
+
+  const fingerprint = certHeader.trim();
+  const now = new Date();
+  const [cert] = await db
+    .select()
+    .from(certificatesTable)
+    .where(
+      and(
+        eq(certificatesTable.fingerprint, fingerprint),
+        eq(certificatesTable.isActive, true),
+        eq(certificatesTable.userId, key.userId)
+      )
+    );
+
+  if (!cert) {
+    res.status(401).json({ error: "Certificado inválido, revogado ou não encontrado" });
+    return;
+  }
+
+  if (cert.expiresAt < now) {
+    res.status(401).json({ error: "Certificado expirado" });
+    return;
+  }
+
+  if (cert.userId !== key.userId) {
+    res.status(401).json({ error: "API Key e Certificado não pertencem ao mesmo usuário" });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, key.userId));
+  if (!user || !user.isActive) {
+    res.status(401).json({ error: "Usuário não encontrado ou desativado" });
+    return;
+  }
+
+  await db.update(apiKeysTable).set({ lastUsedAt: new Date() }).where(eq(apiKeysTable.id, key.id));
+
+  req.user = { userId: user.id, username: user.username, role: user.role };
+  req.isApiKeyAuth = true;
+  req.isCertAuth = true;
+  next();
+}
+
+/**
+ * Aceita: API Key + Certificado (isCertAuth=true, sem restrição IP),
+ *         API Key sozinha (isCertAuth=false, sujeito a restrição IP),
+ *         ou JWT de sessão (isCertAuth=false, isApiKeyAuth=false).
+ */
 export async function requireAuthOrApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
   const apiKeyHeader = (req.headers["x-api-key"] as string | undefined)
     || (req.query["api_key"] as string | undefined);
+  const certHeader = req.headers["x-certificate"] as string | undefined;
+
+  if (apiKeyHeader && certHeader) {
+    await requireApiKeyAndCert(req, res, next);
+    return;
+  }
 
   if (apiKeyHeader) {
     const keyHash = createHash("sha256").update(apiKeyHeader).digest("hex");
@@ -109,6 +188,7 @@ export async function requireAuthOrApiKey(req: Request, res: Response, next: Nex
 
     req.user = { userId: user.id, username: user.username, role: user.role };
     req.isApiKeyAuth = true;
+    req.isCertAuth = false;
     next();
     return;
   }

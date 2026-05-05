@@ -110,6 +110,9 @@ export default function ApiManual() {
             <Link href="/manual" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
               <BookOpen className="h-4 w-4" /> Manual de Operação
             </Link>
+            <a href="/api/swagger" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <Server className="h-4 w-4" /> Swagger UI
+            </a>
             <Link href="/login" className="text-primary hover:underline font-medium">Fazer Login →</Link>
           </div>
         </div>
