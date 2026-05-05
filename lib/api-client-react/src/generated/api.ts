@@ -1963,6 +1963,181 @@ export const useDeleteVaultItem = <
 };
 
 /**
+ * @summary Get a vault item by its numeric ID (explicit path, supports API key auth)
+ */
+export const getGetVaultItemByIdUrl = (id: number) => {
+  return `/api/vault/byID/${id}`;
+};
+
+export const getVaultItemById = async (
+  id: number,
+  options?: RequestInit,
+): Promise<VaultItem> => {
+  return customFetch<VaultItem>(getGetVaultItemByIdUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetVaultItemByIdQueryKey = (id: number) => {
+  return [`/api/vault/byID/${id}`] as const;
+};
+
+export const getGetVaultItemByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof getVaultItemById>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getVaultItemById>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetVaultItemByIdQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getVaultItemById>>
+  > = ({ signal }) => getVaultItemById(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getVaultItemById>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetVaultItemByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getVaultItemById>>
+>;
+export type GetVaultItemByIdQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a vault item by its numeric ID (explicit path, supports API key auth)
+ */
+
+export function useGetVaultItemById<
+  TData = Awaited<ReturnType<typeof getVaultItemById>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getVaultItemById>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetVaultItemByIdQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a vault item by its name (case-insensitive, supports API key auth)
+ */
+export const getGetVaultItemByNameUrl = (name: string) => {
+  return `/api/vault/byName/${name}`;
+};
+
+export const getVaultItemByName = async (
+  name: string,
+  options?: RequestInit,
+): Promise<VaultItem> => {
+  return customFetch<VaultItem>(getGetVaultItemByNameUrl(name), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetVaultItemByNameQueryKey = (name: string) => {
+  return [`/api/vault/byName/${name}`] as const;
+};
+
+export const getGetVaultItemByNameQueryOptions = <
+  TData = Awaited<ReturnType<typeof getVaultItemByName>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  name: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getVaultItemByName>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetVaultItemByNameQueryKey(name);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getVaultItemByName>>
+  > = ({ signal }) => getVaultItemByName(name, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!name,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getVaultItemByName>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetVaultItemByNameQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getVaultItemByName>>
+>;
+export type GetVaultItemByNameQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a vault item by its name (case-insensitive, supports API key auth)
+ */
+
+export function useGetVaultItemByName<
+  TData = Awaited<ReturnType<typeof getVaultItemByName>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  name: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getVaultItemByName>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetVaultItemByNameQueryOptions(name, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Get vault statistics summary
  */
 export const getGetVaultStatsUrl = () => {

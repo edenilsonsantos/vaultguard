@@ -201,6 +201,84 @@ router.post("/vault", requireAuth, async (req, res): Promise<void> => {
   res.status(201).json(formatVaultItem(item, entryRows, accessRows.map((a) => a.userId), creator[0]?.username ?? "unknown", false));
 });
 
+router.get("/vault/byID/:id", requireAuthOrApiKey, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "ID inválido" });
+    return;
+  }
+
+  const userId = req.user!.userId;
+  const canAccess = await canAccessVaultItem(id, userId);
+  if (!canAccess) {
+    res.status(403).json({ error: "Acesso negado" });
+    return;
+  }
+
+  const [item] = await db.select().from(vaultItemsTable).where(eq(vaultItemsTable.id, id));
+  if (!item) {
+    res.status(404).json({ error: "Item não encontrado" });
+    return;
+  }
+
+  if (req.isApiKeyAuth) {
+    const clientIp = req.ip;
+    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
+      res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp, allowedHostsMode: item.allowedHostsMode });
+      return;
+    }
+  }
+
+  await logAccess(id, userId, req);
+
+  const entryRows = await db.select().from(vaultEntriesTable).where(eq(vaultEntriesTable.vaultItemId, id));
+  const accessRows = await db.select().from(vaultItemAccessTable).where(eq(vaultItemAccessTable.vaultItemId, id));
+  const creator = await db.select().from(usersTable).where(eq(usersTable.id, item.createdBy));
+
+  res.json(formatVaultItem(item, entryRows, accessRows.map((a) => a.userId), creator[0]?.username ?? "unknown", req.isApiKeyAuth ?? false));
+});
+
+router.get("/vault/byName/:name", requireAuthOrApiKey, async (req, res): Promise<void> => {
+  const rawName = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+  const name = decodeURIComponent(rawName);
+
+  const userId = req.user!.userId;
+
+  const items = await db
+    .select()
+    .from(vaultItemsTable)
+    .where(sql`lower(${vaultItemsTable.name}) = lower(${name})`);
+
+  if (items.length === 0) {
+    res.status(404).json({ error: "Item não encontrado" });
+    return;
+  }
+
+  const item = items[0];
+  const canAccess = await canAccessVaultItem(item.id, userId);
+  if (!canAccess) {
+    res.status(403).json({ error: "Acesso negado" });
+    return;
+  }
+
+  if (req.isApiKeyAuth) {
+    const clientIp = req.ip;
+    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
+      res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp, allowedHostsMode: item.allowedHostsMode });
+      return;
+    }
+  }
+
+  await logAccess(item.id, userId, req);
+
+  const entryRows = await db.select().from(vaultEntriesTable).where(eq(vaultEntriesTable.vaultItemId, item.id));
+  const accessRows = await db.select().from(vaultItemAccessTable).where(eq(vaultItemAccessTable.vaultItemId, item.id));
+  const creator = await db.select().from(usersTable).where(eq(usersTable.id, item.createdBy));
+
+  res.json(formatVaultItem(item, entryRows, accessRows.map((a) => a.userId), creator[0]?.username ?? "unknown", req.isApiKeyAuth ?? false));
+});
+
 router.get("/vault/:id", requireAuthOrApiKey, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);

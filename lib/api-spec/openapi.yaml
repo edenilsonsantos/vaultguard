@@ -516,6 +516,68 @@ paths:
         "204":
           description: Deleted
 
+  /vault/byID/{id}:
+    get:
+      operationId: getVaultItemById
+      tags: [vault]
+      summary: Get a vault item by its numeric ID (explicit path, supports API key auth)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vault item with entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultItem"
+        "403":
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /vault/byName/{name}:
+    get:
+      operationId: getVaultItemByName
+      tags: [vault]
+      summary: Get a vault item by its name (case-insensitive, supports API key auth)
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vault item with entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultItem"
+        "403":
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /vault/stats:
     get:
       operationId: getVaultStats

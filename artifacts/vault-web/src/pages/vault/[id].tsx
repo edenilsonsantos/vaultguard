@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, ArrowLeft, Edit, Save, X, KeyRound, Globe, User, Clock,
-  Shield, Server, Plus, Lock, AlertTriangle, ShieldAlert,
+  Shield, Server, Plus, Lock, AlertTriangle, ShieldAlert, Hash,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -430,6 +430,11 @@ export default function VaultDetail() {
               <CardTitle>Metadados</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
+              <div className="flex flex-col space-y-1">
+                <span className="text-muted-foreground flex items-center"><Hash className="h-3 w-3 mr-1" /> ID do Vault</span>
+                <span className="font-mono font-bold text-primary text-base">{item.id}</span>
+                <span className="text-xs text-muted-foreground">Use em <code className="bg-muted px-1 rounded">/api/vault/byID/{item.id}</code></span>
+              </div>
               <div className="flex flex-col space-y-1">
                 <span className="text-muted-foreground flex items-center"><User className="h-3 w-3 mr-1" /> Criado por</span>
                 <span className="font-medium">{item.createdByUsername}</span>

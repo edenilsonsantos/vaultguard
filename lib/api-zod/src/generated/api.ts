@@ -395,6 +395,62 @@ export const DeleteVaultItemParams = zod.object({
 });
 
 /**
+ * @summary Get a vault item by its numeric ID (explicit path, supports API key auth)
+ */
+export const GetVaultItemByIdParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetVaultItemByIdResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  category: zod.string(),
+  description: zod.string().nullable(),
+  accessControl: zod.string(),
+  allowedUserIds: zod.array(zod.number()),
+  allowedHostsMode: zod.string(),
+  allowedHosts: zod.array(zod.string()),
+  entries: zod.array(
+    zod.object({
+      key: zod.string(),
+      value: zod.string(),
+    }),
+  ),
+  createdBy: zod.number(),
+  createdByUsername: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Get a vault item by its name (case-insensitive, supports API key auth)
+ */
+export const GetVaultItemByNameParams = zod.object({
+  name: zod.coerce.string(),
+});
+
+export const GetVaultItemByNameResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  category: zod.string(),
+  description: zod.string().nullable(),
+  accessControl: zod.string(),
+  allowedUserIds: zod.array(zod.number()),
+  allowedHostsMode: zod.string(),
+  allowedHosts: zod.array(zod.string()),
+  entries: zod.array(
+    zod.object({
+      key: zod.string(),
+      value: zod.string(),
+    }),
+  ),
+  createdBy: zod.number(),
+  createdByUsername: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
  * @summary Get vault statistics summary
  */
 export const GetVaultStatsResponse = zod.object({

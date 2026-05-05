@@ -289,14 +289,6 @@ export default function Login() {
               </div>
             )}
 
-            {!showTwoFactorStep && (
-              <div className="mt-6 text-center text-sm">
-                <span className="text-muted-foreground">Não tem uma conta? </span>
-                <Link href="/register" className="text-primary hover:underline font-medium">
-                  Solicitar acesso
-                </Link>
-              </div>
-            )}
           </CardContent>
         </Card>
 
