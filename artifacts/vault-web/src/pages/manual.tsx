@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Shield, ArrowLeft, KeyRound, Globe, Lock, Server, Users, Settings, Activity, User, Code2, BookOpen, ChevronRight } from "lucide-react";
+import { Shield, KeyRound, Globe, Lock, Server, Code2, BookOpen, ChevronRight, Hash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
@@ -249,7 +249,7 @@ export default function Manual() {
 
           {/* 4. Lista de Vault */}
           <Section id="vault-list" title="4. Lista de Vault">
-            <p className="text-muted-foreground">A página Vault exibe todos os itens que você tem permissão de acessar.</p>
+            <p className="text-muted-foreground">A página Vault exibe todos os itens que você tem permissão de acessar, com o ID de cada um visível diretamente nos cards.</p>
 
             <MockScreen label="/vault">
               <div className="space-y-3">
@@ -258,30 +258,35 @@ export default function Manual() {
                     <p className="font-bold text-lg">Vault</p>
                     <p className="text-xs text-muted-foreground">Gerencie suas credenciais e variáveis globais.</p>
                   </div>
-                  <div className="bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-md font-medium">+ Novo Segredo</div>
+                  <div className="bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-md font-medium">+ Novo Item</div>
                 </div>
-                <div className="border border-border rounded-md px-3 py-2 text-xs text-muted-foreground bg-muted/20">Buscar itens...</div>
+                <div className="border border-border rounded-md px-3 py-2 text-xs text-muted-foreground bg-muted/20">Buscar por nome, ID ou descrição...</div>
                 <div className="grid md:grid-cols-3 gap-3">
                   {[
-                    { name: "BD-Producao", type: "credencial", entries: 3, desc: "Banco de dados PostgreSQL de produção" },
-                    { name: "API-Stripe-Prod", type: "credencial", entries: 2, desc: "Chaves de API do Stripe produção" },
-                    { name: "ENV-Backend", type: "variavel_global", entries: 8, desc: "Variáveis de ambiente do backend" },
+                    { id: 7,  name: "BD-Producao",    type: "credencial",    entries: 3, desc: "Banco de dados PostgreSQL de produção" },
+                    { id: 12, name: "API-Stripe-Prod", type: "credencial",    entries: 2, desc: "Chaves de API do Stripe produção" },
+                    { id: 15, name: "ENV-Backend",     type: "variavel_global", entries: 8, desc: "Variáveis de ambiente do backend" },
                   ].map((item) => (
                     <div key={item.name} className="border border-border rounded-lg p-3 bg-muted/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           {item.type === "credencial"
-                            ? <KeyRound className="h-3.5 w-3.5 text-primary" />
-                            : <Globe className="h-3.5 w-3.5" />}
-                          <span className="text-sm font-semibold">{item.name}</span>
+                            ? <KeyRound className="h-3.5 w-3.5 text-primary shrink-0" />
+                            : <Globe className="h-3.5 w-3.5 shrink-0" />}
+                          <span className="text-sm font-semibold truncate">{item.name}</span>
                         </div>
-                        <Badge variant={item.type === "credencial" ? "default" : "secondary"} className="text-[10px]">
+                        <Badge variant={item.type === "credencial" ? "default" : "secondary"} className="text-[10px] shrink-0">
                           {item.type === "credencial" ? "Credencial" : "Var. Global"}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">{item.desc}</p>
-                      <div className="flex justify-between text-[10px] text-muted-foreground border-t border-border pt-2">
-                        <span>Atualizado 04/05/2026</span>
+                      <div className="flex justify-between text-[10px] text-muted-foreground border-t border-border pt-2 items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-0.5 font-mono text-primary/80 font-semibold">
+                            <Hash className="h-2.5 w-2.5" />{item.id}
+                          </span>
+                          <span>04/05/2026</span>
+                        </div>
                         <Badge variant="outline" className="text-[10px]">{item.entries} entradas</Badge>
                       </div>
                     </div>
@@ -291,11 +296,12 @@ export default function Manual() {
             </MockScreen>
 
             <ul className="text-sm text-muted-foreground space-y-1.5 list-disc list-inside mt-3">
-              <li>Use a caixa de busca para filtrar itens pelo nome ou descrição.</li>
-              <li>Ícone de <KeyRound className="h-3.5 w-3.5 inline" /> indica <strong>Credencial</strong> (valores protegidos).</li>
-              <li>Ícone de <Globe className="h-3.5 w-3.5 inline" /> indica <strong>Variável Global</strong> (valores visíveis).</li>
-              <li>Clique em qualquer card para ver os detalhes.</li>
-              <li>Botão <strong>"+ Novo Segredo"</strong> abre o formulário de criação.</li>
+              <li>O <strong>ID numérico</strong> de cada vault aparece em destaque no rodapé do card (ex: <span className="font-mono text-xs text-primary">#7</span>). Use-o para consultas via API.</li>
+              <li>Use a caixa de busca para filtrar por <strong>nome</strong>, <strong>ID</strong> ou <strong>descrição</strong>.</li>
+              <li>Ícone de <KeyRound className="h-3.5 w-3.5 inline" /> indica <strong>Credencial</strong> (valores protegidos, acessíveis somente via API Key).</li>
+              <li>Ícone de <Globe className="h-3.5 w-3.5 inline" /> indica <strong>Variável Global</strong> (valores visíveis no browser).</li>
+              <li>Clique em qualquer card para ver os detalhes e o ID completo com exemplo de uso na API.</li>
+              <li>Botão <strong>"+ Novo Item"</strong> abre o formulário de criação.</li>
             </ul>
           </Section>
 
@@ -372,7 +378,38 @@ export default function Manual() {
           <Section id="vault-detalhe" title="6. Visualizar e Editar um Vault">
             <p className="text-muted-foreground">Clique em um item do vault para ver seus detalhes. Administradores podem editar todos os campos.</p>
 
-            <SubSection title="6.1 Visualizando uma Credencial">
+            <SubSection title="6.1 ID do Vault e referência para API">
+              <p className="text-sm text-muted-foreground">
+                Cada vault possui um <strong>ID numérico único</strong>, exibido no card de <strong>Metadados</strong> na coluna direita da página de detalhes.
+                Use este ID para consultar o vault via API Key em scripts e automações.
+              </p>
+              <MockScreen label="/vault/7 — Metadados">
+                <div className="space-y-3 max-w-xs">
+                  <p className="text-sm font-semibold">Metadados</p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Hash className="h-3 w-3" /> ID do Vault</p>
+                    <p className="font-mono font-bold text-primary text-lg">7</p>
+                    <p className="text-xs text-muted-foreground">Use em <code className="bg-muted px-1 rounded font-mono">/api/vault/byID/7</code></p>
+                  </div>
+                  <div className="space-y-1 border-t border-border pt-2">
+                    <p className="text-xs text-muted-foreground">Criado por</p>
+                    <p className="text-sm font-medium">joao.silva</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Acesso por VM (API)</p>
+                    <Badge variant="outline" className="text-[10px]">2 host(s)</Badge>
+                  </div>
+                </div>
+              </MockScreen>
+              <InfoBox title="Como usar o ID na API" color="blue">
+                Com o ID em mãos, sua VM pode consultar os valores via:{" "}
+                <code className="font-mono text-xs">GET /api/vault/byID/7</code> (por ID) ou{" "}
+                <code className="font-mono text-xs">GET /api/vault/byName/BD-Producao</code> (por nome).
+                Consulte a <Link href="/api-manual" className="underline">Documentação da API</Link> para exemplos completos.
+              </InfoBox>
+            </SubSection>
+
+            <SubSection title="6.2 Visualizando uma Credencial">
               <InfoBox title="Proteção de valores no browser" color="amber">
                 Para itens do tipo <strong>Credencial</strong>, os valores <em>nunca</em> são exibidos no browser, independentemente do papel do usuário. A mensagem <code className="font-mono text-xs">••••••••••••• [Acesse via API para visualizar]</code> é sempre exibida no lugar do valor real.
               </InfoBox>
@@ -385,7 +422,7 @@ export default function Manual() {
                     <Badge>Credencial</Badge>
                   </div>
                   <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-md text-xs text-amber-700 dark:text-amber-400">
-                    ⚠ <strong>Valores protegidos no browser</strong> — Para visualizar os valores reais, utilize a API com sua API key e o IP desta VM autorizado.
+                    ⚠ <strong>Valores protegidos no browser</strong> — Para visualizar os valores reais, utilize a API Key com o IP desta VM autorizado.
                   </div>
                   {[{ key: "DB_HOST" }, { key: "DB_PASSWORD" }, { key: "DB_PORT" }].map((e) => (
                     <div key={e.key} className="border border-border rounded-lg p-3 space-y-2 bg-muted/10">
@@ -402,7 +439,7 @@ export default function Manual() {
               </MockScreen>
             </SubSection>
 
-            <SubSection title="6.2 Editando um Vault">
+            <SubSection title="6.3 Editando um Vault">
               <div className="space-y-2">
                 <Step n={1}>Clique no botão <strong>"Editar"</strong> no canto superior direito.</Step>
                 <Step n={2}>O <strong>nome</strong> do item fica editável diretamente no cabeçalho.</Step>
@@ -413,7 +450,7 @@ export default function Manual() {
               </div>
             </SubSection>
 
-            <SubSection title="6.3 Excluindo um Vault">
+            <SubSection title="6.4 Excluindo um Vault">
               <div className="space-y-2">
                 <Step n={1}>Clique no botão vermelho <strong>"Excluir"</strong>.</Step>
                 <Step n={2}>Um diálogo de confirmação é exibido. Esta ação é irreversível.</Step>
@@ -508,10 +545,10 @@ export default function Manual() {
           </Section>
 
           {/* 9. Perfil */}
-          <Section id="perfil" title="9. Perfil e 2FA">
-            <p className="text-muted-foreground">Acesse seu perfil pelo menu lateral <strong>"Perfil"</strong>. Permite alterar a senha e configurar a autenticação de dois fatores.</p>
+          <Section id="perfil" title="9. Perfil, 2FA e API Keys">
+            <p className="text-muted-foreground">Acesse seu perfil pelo menu lateral <strong>"Perfil"</strong>. Permite alterar a senha, configurar o 2FA e gerenciar suas API Keys para integração com scripts e VMs.</p>
 
-            <SubSection title="Alterar senha">
+            <SubSection title="9.1 Alterar senha">
               <div className="space-y-2">
                 <Step n={1}>Na aba <strong>"Senha"</strong>, informe a senha atual.</Step>
                 <Step n={2}>Digite a nova senha (mínimo 12 caracteres, maiúscula, minúscula, número e especial).</Step>
@@ -519,7 +556,7 @@ export default function Manual() {
               </div>
             </SubSection>
 
-            <SubSection title="Configurar 2FA">
+            <SubSection title="9.2 Configurar 2FA">
               <div className="space-y-2">
                 <Step n={1}>Acesse a aba <strong>"Autenticação 2FA"</strong>.</Step>
                 <Step n={2}>Clique em <strong>"Configurar 2FA"</strong>. Um QR code será exibido.</Step>
@@ -527,6 +564,61 @@ export default function Manual() {
                 <Step n={4}>Digite o código de 6 dígitos gerado pelo app e clique em <strong>"Confirmar Ativação"</strong>.</Step>
                 <Step n={5}>Para desativar: clique em <strong>"Desativar 2FA"</strong>, confirme com um código OTP válido.</Step>
               </div>
+            </SubSection>
+
+            <SubSection title="9.3 Gerenciar API Keys">
+              <p className="text-sm text-muted-foreground mb-3">
+                API Keys permitem que scripts, VMs e serviços consultem o vault programaticamente,
+                sem usar suas credenciais de login. São a <strong>única forma</strong> de obter valores
+                reais de itens do tipo Credencial fora do browser.
+              </p>
+
+              <MockScreen label="/profile — aba API Keys">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">API Keys</p>
+                    <div className="bg-primary text-primary-foreground text-xs px-2.5 py-1 rounded-md font-medium">+ Gerar Nova</div>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { name: "vm-producao-app1", prefix: "vgk_a1b2c3", active: true, last: "há 2 min" },
+                      { name: "pipeline-ci",      prefix: "vgk_d4e5f6", active: true, last: "há 3 dias" },
+                      { name: "vm-staging-old",   prefix: "vgk_g7h8i9", active: false, last: "nunca" },
+                    ].map((k) => (
+                      <div key={k.name} className="border border-border rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{k.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-mono text-muted-foreground">{k.prefix}...</span>
+                            <Badge variant={k.active ? "outline" : "destructive"} className="text-[10px]">
+                              {k.active ? "Ativa" : "Revogada"}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">último uso: {k.last}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-destructive/70 cursor-pointer hover:text-destructive">🗑 Revogar</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </MockScreen>
+
+              <div className="space-y-2 mt-3">
+                <p className="text-sm font-semibold">Gerar uma nova API Key:</p>
+                <div className="space-y-2">
+                  <Step n={1}>Na aba <strong>"API Keys"</strong> do seu perfil, clique em <strong>"Gerar Nova API Key"</strong>.</Step>
+                  <Step n={2}>Dê um nome descritivo que identifique o serviço ou VM (ex: <code className="font-mono text-xs bg-muted px-1 rounded">vm-producao-app1</code>).</Step>
+                  <Step n={3}><strong>Copie a chave imediatamente.</strong> O valor completo é exibido <strong>uma única vez</strong> e não pode ser recuperado depois.</Step>
+                  <Step n={4}>Configure a chave como variável de ambiente na VM (<code className="font-mono text-xs bg-muted px-1 rounded">export VAULTGUARD_API_KEY="vgk_..."</code>).</Step>
+                  <Step n={5}>Use o header <code className="font-mono text-xs bg-muted px-1 rounded">X-API-Key: vgk_...</code> nas requisições à API.</Step>
+                </div>
+              </div>
+
+              <InfoBox title="Uma chave por serviço" color="green">
+                Crie uma API Key separada para cada VM ou serviço. Assim, se uma chave for comprometida,
+                você pode revogar <strong>apenas ela</strong> sem impactar os demais serviços.
+                Para revogar: clique no ícone de lixeira ao lado da chave no Perfil → API Keys.
+              </InfoBox>
             </SubSection>
           </Section>
 
