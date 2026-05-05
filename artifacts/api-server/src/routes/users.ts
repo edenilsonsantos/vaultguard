@@ -5,6 +5,8 @@ import { eq, and } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { UpdateUserBody } from "@workspace/api-zod";
 
+const DEMO_USERNAMES = ["demo_user", "demo_admin"];
+
 const router: IRouter = Router();
 
 function formatUser(u: typeof usersTable.$inferSelect) {
@@ -83,6 +85,17 @@ router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!target) {
+    res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+
+  if (DEMO_USERNAMES.includes(target.username)) {
+    res.status(403).json({ error: "Usuários de demonstração não podem ser excluídos." });
+    return;
+  }
+
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.sendStatus(204);
 });
@@ -99,6 +112,11 @@ router.post("/users/:id/reset-password", requireAdmin, async (req, res): Promise
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   if (!user) {
     res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+
+  if (DEMO_USERNAMES.includes(user.username)) {
+    res.status(403).json({ error: "A senha de usuários de demonstração não pode ser redefinida." });
     return;
   }
 

@@ -29,8 +29,9 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
   KeyRound, Shield, Download, Trash2, Key, AlertTriangle, Copy, Check,
-  QrCode, ShieldCheck, ShieldOff, Smartphone,
+  QrCode, ShieldCheck, ShieldOff, Smartphone, Lock,
 } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+const DEMO_USERNAMES = ["demo_user", "demo_admin"];
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[A-Za-z\d\S]{12,}$/;
 
@@ -359,36 +362,48 @@ export default function Profile() {
               <CardDescription>Certifique-se de que sua nova senha atende aos requisitos de segurança.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 max-w-md">
-                  <FormField
-                    control={passwordForm.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha atual</FormLabel>
-                        <FormControl><Input type="password" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nova senha</FormLabel>
-                        <FormControl><Input type="password" {...field} /></FormControl>
-                        <PasswordStrengthIndicator password={passwordForm.watch("newPassword")} />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" disabled={changePasswordMutation.isPending}>
-                    {changePasswordMutation.isPending ? "Atualizando..." : "Atualizar senha"}
-                  </Button>
-                </form>
-              </Form>
+              {user && DEMO_USERNAMES.includes(user.username) ? (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 max-w-md">
+                  <Lock className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-500">Conta de demonstração</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      A senha deste usuário não pode ser alterada. Ele existe apenas para fins de demonstração do sistema.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <Form {...passwordForm}>
+                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 max-w-md">
+                    <FormField
+                      control={passwordForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Senha atual</FormLabel>
+                          <FormControl><Input type="password" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={passwordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nova senha</FormLabel>
+                          <FormControl><Input type="password" {...field} /></FormControl>
+                          <PasswordStrengthIndicator password={passwordForm.watch("newPassword")} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" disabled={changePasswordMutation.isPending}>
+                      {changePasswordMutation.isPending ? "Atualizando..." : "Atualizar senha"}
+                    </Button>
+                  </form>
+                </Form>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

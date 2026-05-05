@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { IRouter } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   generateToken,
@@ -20,6 +20,13 @@ import {
 } from "@workspace/api-zod";
 import { generateSecret, generateURI, verifySync } from "otplib";
 import QRCode from "qrcode";
+
+const DEMO_USERNAMES = ["demo_user", "demo_admin"];
+
+async function isDemoEnabled(): Promise<boolean> {
+  const [row] = await db.select().from(settingsTable).where(eq(settingsTable.key, "show_demo_credentials"));
+  return row?.value === "true";
+}
 
 const router: IRouter = Router();
 
@@ -102,6 +109,14 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  if (DEMO_USERNAMES.includes(user.username)) {
+    const enabled = await isDemoEnabled();
+    if (!enabled) {
+      res.status(401).json({ error: "Credenciais de demonstração estão desativadas no momento." });
+      return;
+    }
+  }
+
   if (!user.passwordHash) {
     res.status(401).json({ error: "Redefinição de senha obrigatória" });
     return;
@@ -167,6 +182,11 @@ router.post("/auth/change-password", requireAuth, async (req, res): Promise<void
     return;
   }
 
+  if (DEMO_USERNAMES.includes(user.username)) {
+    res.status(403).json({ error: "A senha de usuários de demonstração não pode ser alterada." });
+    return;
+  }
+
   const valid = await comparePassword(currentPassword, user.passwordHash);
   if (!valid) {
     res.status(400).json({ error: "Senha atual incorreta" });
@@ -218,6 +238,11 @@ router.post("/auth/set-password", async (req, res): Promise<void> => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
   if (!user) {
     res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+
+  if (DEMO_USERNAMES.includes(user.username)) {
+    res.status(403).json({ error: "A senha de usuários de demonstração não pode ser alterada." });
     return;
   }
 

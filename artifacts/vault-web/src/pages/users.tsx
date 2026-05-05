@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Shield, ShieldAlert, Trash2, KeyRound, RotateCcw } from "lucide-react";
+import { Shield, ShieldAlert, Trash2, KeyRound, RotateCcw, FlaskConical } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -46,6 +46,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const DEMO_USERNAMES = ["demo_user", "demo_admin"];
 
 export default function Users() {
   const { toast } = useToast();
@@ -198,7 +200,14 @@ export default function Users() {
                     <TableRow key={user.id} className={!user.isActive ? "opacity-60" : ""}>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{user.fullName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{user.fullName}</span>
+                            {DEMO_USERNAMES.includes(user.username) && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-500/50 text-amber-500 flex items-center gap-1">
+                                <FlaskConical className="w-2.5 h-2.5" /> Demo
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-xs text-muted-foreground">@{user.username}</span>
                           {user.requiresPasswordReset && (
                             <span className="text-xs text-amber-500 flex items-center gap-1 mt-0.5">
@@ -259,30 +268,43 @@ export default function Users() {
                         <div className="flex items-center justify-end gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                                onClick={() => setUserToReset({ id: user.id, name: user.username })}
-                                disabled={resetPasswordMutation.isPending}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
+                              <span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                                  onClick={() => setUserToReset({ id: user.id, name: user.username })}
+                                  disabled={resetPasswordMutation.isPending || DEMO_USERNAMES.includes(user.username)}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent>Redefinir senha</TooltipContent>
+                            <TooltipContent>
+                              {DEMO_USERNAMES.includes(user.username)
+                                ? "Senha de usuário demo não pode ser redefinida"
+                                : "Redefinir senha"}
+                            </TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => setUserToDelete({ id: user.id, name: user.username })}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setUserToDelete({ id: user.id, name: user.username })}
+                                  disabled={DEMO_USERNAMES.includes(user.username)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent>Excluir usuário</TooltipContent>
+                            <TooltipContent>
+                              {DEMO_USERNAMES.includes(user.username)
+                                ? "Usuário demo não pode ser excluído"
+                                : "Excluir usuário"}
+                            </TooltipContent>
                           </Tooltip>
                         </div>
                       </TableCell>
