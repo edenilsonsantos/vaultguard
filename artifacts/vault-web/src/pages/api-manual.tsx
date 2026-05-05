@@ -224,11 +224,11 @@ export default function ApiManual() {
   -H "X-API-Key: vgk_a1b2c3d4e5f67890abcdef1234567890..." \\
   -H "X-Certificate: 3a:b2:c1:d0:e9:f8:07:16:25:34:43:52:61:70:7f:8e:9d:ac:bb:ca:d9:e8:f7:06:15:24:33:42:51:60:6f:7e"`} />
               </div>
-              <InfoBox title="Vantagem: sem restrição por IP" color="green">
-                Quando ambos os headers estão presentes, <strong>não há verificação de IP/host</strong>.
-                A segurança é garantida pelos dois fatores de autenticação — qualquer máquina com a API Key
-                e o fingerprint corretos pode consultar o vault, independentemente do IP.
-                Ideal para ambientes com IPs dinâmicos, containers ou pipelines de CI/CD.
+              <InfoBox title="Restrição de IP se aplica normalmente" color="amber">
+                O certificado é o <strong>segundo fator de identidade</strong>, mas a restrição de IP/host
+                configurada no vault é aplicada independentemente do modo de autenticação.
+                Se o vault exige hosts específicos, o IP da máquina que faz a requisição deve estar na lista —
+                seja ela uma VM, container ou o Swagger UI no browser.
               </InfoBox>
             </div>
 
@@ -486,58 +486,34 @@ resp = requests.get(
           {/* 6. Restrição por IP */}
           <Section id="ip" title="6. Restrição por IP/Host">
             <p className="text-muted-foreground">
-              Cada vault pode ser configurado para aceitar consultas de API somente de IPs ou hostnames específicos.
-              Esta restrição <strong>se aplica apenas ao modo API Key sozinha</strong>.
-              Ao usar <strong>API Key + Certificado</strong>, a verificação de IP é automaticamente ignorada.
+              Cada vault pode ser configurado para aceitar consultas somente de IPs ou hostnames específicos.
+              Esta restrição se aplica a <strong>todos os modos de acesso via API</strong>: API Key sozinha,
+              API Key + Certificado, e Swagger UI. O certificado é um segundo fator de identidade, não um bypass de IP.
             </p>
 
             <div className="border border-border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground">Modo de auth</th>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground">Restrição de IP</th>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground">Ideal para</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  <tr className="hover:bg-muted/10">
-                    <td className="px-4 py-3 font-mono text-xs text-primary">API Key + Certificado</td>
-                    <td className="px-4 py-3 text-xs text-green-600 dark:text-green-400 font-medium">Nenhuma — ignorada</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">Containers, CI/CD, IPs dinâmicos</td>
-                  </tr>
-                  <tr className="hover:bg-muted/10">
-                    <td className="px-4 py-3 font-mono text-xs text-primary">API Key sozinha</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">Aplicada conforme <code className="font-mono">allowedHostsMode</code> do vault</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">VMs com IP fixo e configuração de hosts</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="border border-border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
                     <th className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground">allowedHostsMode</th>
-                    <th className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground">Comportamento (API Key sozinha)</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground">Comportamento — válido para todos os modos de auth</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   <tr className="hover:bg-muted/10">
                     <td className="px-4 py-3 font-mono text-xs text-primary">"all"</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">Qualquer máquina com API Key válida pode consultar. Sem restrição de IP.</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">Qualquer IP pode consultar. Sem restrição de host.</td>
                   </tr>
                   <tr className="hover:bg-muted/10">
                     <td className="px-4 py-3 font-mono text-xs text-primary">"specific"</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">Somente IPs listados em <code className="font-mono">allowedHosts</code>. Outros recebem <code className="font-mono">403 Forbidden</code>.</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">Somente IPs listados em <code className="font-mono">allowedHosts</code> são aceitos — independentemente do modo de autenticação (API Key, API Key + Cert ou Swagger UI). Outros recebem <code className="font-mono">403 Forbidden</code>.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold">Resposta quando o IP não é permitido (modo API Key sozinha):</p>
+              <p className="text-sm font-semibold">Resposta quando o IP não é permitido:</p>
               <CodeBlock lang="json" code={`HTTP/1.1 403 Forbidden
 
 {
@@ -549,16 +525,17 @@ resp = requests.get(
 
             <InfoBox title="Como configurar a restrição de IP" color="green">
               Acesse o vault no browser → clique em <strong>Editar</strong> → seção <strong>"Restrição de Acesso via API por VM/Host"</strong>.
-              Selecione "Hosts Específicos" e adicione os IPs das VMs autorizadas. A configuração entra em vigor imediatamente.
-              Se você usa API Key + Certificado, esta configuração não tem efeito.
+              Selecione "Hosts Específicos" e adicione os IPs das VMs e/ou do servidor que executa o Swagger UI.
+              A configuração entra em vigor imediatamente para todos os modos de acesso via API.
             </InfoBox>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold">Dica: descobrir o IP da sua VM</p>
-              <CodeBlock lang="bash" code={`# Na VM, descobrir o IP que o servidor enxerga (modo API Key só):
+              <p className="text-sm font-semibold">Dica: descobrir o IP que o servidor enxerga</p>
+              <CodeBlock lang="bash" code={`# Na VM ou via Swagger, se o IP não for permitido a resposta inclui o clientIp:
 curl -s "${BASE}/api/vault/byID/7" \\
-  -H "X-API-Key: vgk_..." | jq '.error, .clientIp'
-# Se o IP não for permitido, a resposta inclui o clientIp — use-o para configurar o vault.`} />
+  -H "X-API-Key: vgk_..." \\
+  -H "X-Certificate: 3a:b2:..." | jq '.error, .clientIp'
+# Use o clientIp retornado para adicionar o IP na lista de hosts permitidos do vault.`} />
             </div>
           </Section>
 

@@ -222,7 +222,7 @@ router.get("/vault/byID/:id", requireAuthOrApiKey, async (req, res): Promise<voi
     return;
   }
 
-  if (req.isApiKeyAuth && !req.isCertAuth) {
+  if (req.isApiKeyAuth) {
     const clientIp = req.ip;
     if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
       res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp, allowedHostsMode: item.allowedHostsMode });
@@ -262,7 +262,7 @@ router.get("/vault/byName/:name", requireAuthOrApiKey, async (req, res): Promise
     return;
   }
 
-  if (req.isApiKeyAuth && !req.isCertAuth) {
+  if (req.isApiKeyAuth) {
     const clientIp = req.ip;
     if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
       res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp, allowedHostsMode: item.allowedHostsMode });
@@ -300,7 +300,7 @@ router.get("/vault/:id", requireAuthOrApiKey, async (req, res): Promise<void> =>
     return;
   }
 
-  if (req.isApiKeyAuth && !req.isCertAuth) {
+  if (req.isApiKeyAuth) {
     const clientIp = req.ip;
     if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
       res.status(403).json({

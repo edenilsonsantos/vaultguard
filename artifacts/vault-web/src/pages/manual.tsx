@@ -628,7 +628,8 @@ export default function Manual() {
             <SubSection title="9.4 Gerenciar Certificados de Cliente">
               <p className="text-sm text-muted-foreground mb-3">
                 Certificados de cliente são usados em conjunto com a API Key para autenticação de dois fatores.
-                Ao enviar API Key + Certificado, <strong>não há verificação de IP</strong> — a segurança é garantida pelos dois fatores.
+                O certificado comprova a identidade do serviço — a restrição de IP/host configurada no vault
+                continua sendo aplicada normalmente para todos os modos de acesso via API.
                 O valor que você usa na API é o <strong>fingerprint</strong> (SHA-256) do certificado.
               </p>
 
@@ -672,8 +673,8 @@ export default function Manual() {
 
               <InfoBox title="Como usar o Certificado na API" color="blue">
                 Envie o fingerprint no header <code className="font-mono text-xs">X-Certificate</code> junto com o <code className="font-mono text-xs">X-API-Key</code> em cada requisição.
-                Quando ambos estão presentes, a verificação de IP do vault é automaticamente ignorada.
-                Veja exemplos completos na <Link href="/api-manual" className="underline">Documentação da API</Link> ou no{" "}
+                A restrição de IP/host do vault ainda se aplica — certifique-se de que o IP da VM ou do servidor
+                está na lista de hosts permitidos. Veja exemplos na <Link href="/api-manual" className="underline">Documentação da API</Link> ou no{" "}
                 <a href="/api/swagger" target="_blank" rel="noopener noreferrer" className="underline">Swagger UI</a>.
               </InfoBox>
 

@@ -92,7 +92,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
  * Autenticação por API Key + Certificado (dois fatores para acesso programático).
  * Ambos os headers X-API-Key e X-Certificate são obrigatórios.
  * Ambos devem pertencer ao mesmo usuário ativo.
- * Sem restrição por IP — a segurança é garantida pelos dois fatores.
+ * A restrição de IP/host do vault ainda é aplicada normalmente.
  */
 export async function requireApiKeyAndCert(req: Request, res: Response, next: NextFunction): Promise<void> {
   const apiKeyHeader = (req.headers["x-api-key"] as string | undefined)
@@ -155,8 +155,8 @@ export async function requireApiKeyAndCert(req: Request, res: Response, next: Ne
 }
 
 /**
- * Aceita: API Key + Certificado (isCertAuth=true, sem restrição IP),
- *         API Key sozinha (isCertAuth=false, sujeito a restrição IP),
+ * Aceita: API Key + Certificado (isCertAuth=true, sujeito a restrição IP do vault),
+ *         API Key sozinha (isCertAuth=false, sujeito a restrição IP do vault),
  *         ou JWT de sessão (isCertAuth=false, isApiKeyAuth=false).
  */
 export async function requireAuthOrApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
