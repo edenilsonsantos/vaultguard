@@ -8,6 +8,7 @@ const router: IRouter = Router();
 
 const DEFAULT_SETTINGS: Record<string, string> = {
   show_demo_credentials: "true",
+  session_timeout_minutes: "0",
 };
 
 async function ensureDefaults() {
