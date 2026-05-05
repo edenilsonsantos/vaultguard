@@ -158,6 +158,7 @@ export async function requireApiKeyAndCert(req: Request, res: Response, next: Ne
  * Aceita: API Key + Certificado (isCertAuth=true, sujeito a restrição IP do vault),
  *         API Key sozinha (isCertAuth=false, sujeito a restrição IP do vault),
  *         ou JWT de sessão (isCertAuth=false, isApiKeyAuth=false).
+ * Usado por rotas internas do browser que também aceitam API Key sem cert.
  */
 export async function requireAuthOrApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
   const apiKeyHeader = (req.headers["x-api-key"] as string | undefined)
@@ -190,6 +191,34 @@ export async function requireAuthOrApiKey(req: Request, res: Response, next: Nex
     req.isApiKeyAuth = true;
     req.isCertAuth = false;
     next();
+    return;
+  }
+
+  await requireAuth(req, res, next);
+}
+
+/**
+ * Acesso via API aos endpoints de consulta de vault.
+ * Regras:
+ *   - JWT (browser) → permitido sem certificado (acesso normal de sessão)
+ *   - API Key sem Certificado → REJEITADO (certificado obrigatório para acesso programático)
+ *   - API Key + Certificado → autenticação de dois fatores completa
+ * A restrição de IP/host do vault é sempre aplicada pelo handler da rota.
+ */
+export async function requireAuthOrApiKeyAndCert(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const apiKeyHeader = (req.headers["x-api-key"] as string | undefined)
+    || (req.query["api_key"] as string | undefined);
+  const certHeader = req.headers["x-certificate"] as string | undefined;
+
+  if (apiKeyHeader && !certHeader) {
+    res.status(401).json({
+      error: "Certificado obrigatório. Para acesso programático ao vault, envie X-API-Key e X-Certificate (fingerprint do certificado) — ambos pertencentes ao mesmo usuário.",
+    });
+    return;
+  }
+
+  if (apiKeyHeader && certHeader) {
+    await requireApiKeyAndCert(req, res, next);
     return;
   }
 

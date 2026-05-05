@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { IRouter } from "express";
 import { db, vaultItemsTable, vaultEntriesTable, vaultItemAccessTable, usersTable } from "@workspace/db";
 import { eq, and, or, inArray, sql, count, desc } from "drizzle-orm";
-import { requireAuth, requireAuthOrApiKey } from "../lib/auth";
+import { requireAuth, requireAuthOrApiKey, requireAuthOrApiKeyAndCert } from "../lib/auth";
 import { encryptValue, decryptValue } from "../lib/crypto";
 import { CreateVaultItemBody, UpdateVaultItemBody } from "@workspace/api-zod";
 import { auditLogsTable } from "@workspace/db";
@@ -201,7 +201,7 @@ router.post("/vault", requireAuth, async (req, res): Promise<void> => {
   res.status(201).json(formatVaultItem(item, entryRows, accessRows.map((a) => a.userId), creator[0]?.username ?? "unknown", false));
 });
 
-router.get("/vault/byID/:id", requireAuthOrApiKey, async (req, res): Promise<void> => {
+router.get("/vault/byID/:id", requireAuthOrApiKeyAndCert, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   if (isNaN(id)) {
@@ -239,7 +239,7 @@ router.get("/vault/byID/:id", requireAuthOrApiKey, async (req, res): Promise<voi
   res.json(formatVaultItem(item, entryRows, accessRows.map((a) => a.userId), creator[0]?.username ?? "unknown", req.isApiKeyAuth ?? false));
 });
 
-router.get("/vault/byName/:name", requireAuthOrApiKey, async (req, res): Promise<void> => {
+router.get("/vault/byName/:name", requireAuthOrApiKeyAndCert, async (req, res): Promise<void> => {
   const rawName = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
   const name = decodeURIComponent(rawName);
 
@@ -279,7 +279,7 @@ router.get("/vault/byName/:name", requireAuthOrApiKey, async (req, res): Promise
   res.json(formatVaultItem(item, entryRows, accessRows.map((a) => a.userId), creator[0]?.username ?? "unknown", req.isApiKeyAuth ?? false));
 });
 
-router.get("/vault/:id", requireAuthOrApiKey, async (req, res): Promise<void> => {
+router.get("/vault/:id", requireAuthOrApiKeyAndCert, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   if (isNaN(id)) {
