@@ -72,7 +72,7 @@ const toc = [
   { id: "vault-detalhe", label: "6. Visualizar e Editar um Vault" },
   { id: "usuarios", label: "7. Gestão de Usuários (Admin)" },
   { id: "configuracoes", label: "8. Configurações (Admin)" },
-  { id: "perfil", label: "9. Perfil e 2FA" },
+  { id: "perfil", label: "9. Perfil, 2FA e Certificados" },
   { id: "logs", label: "10. Logs de Auditoria" },
 ];
 
@@ -91,6 +91,9 @@ export default function Manual() {
             <Link href="/api-manual" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
               <Code2 className="h-4 w-4" /> Documentação da API
             </Link>
+            <a href="/api/swagger" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <Server className="h-4 w-4" /> Swagger UI
+            </a>
             <Link href="/login" className="text-primary hover:underline font-medium">Fazer Login →</Link>
           </div>
         </div>
@@ -402,10 +405,12 @@ export default function Manual() {
                 </div>
               </MockScreen>
               <InfoBox title="Como usar o ID na API" color="blue">
-                Com o ID em mãos, sua VM pode consultar os valores via:{" "}
+                Com o ID em mãos, sua VM consulta os valores via:{" "}
                 <code className="font-mono text-xs">GET /api/vault/byID/7</code> (por ID) ou{" "}
-                <code className="font-mono text-xs">GET /api/vault/byName/BD-Producao</code> (por nome).
-                Consulte a <Link href="/api-manual" className="underline">Documentação da API</Link> para exemplos completos.
+                <code className="font-mono text-xs">GET /api/vault/byName/BD-Producao</code> (por nome),
+                enviando os headers <code className="font-mono text-xs">X-API-Key</code> e <code className="font-mono text-xs">X-Certificate</code>.
+                Veja a <Link href="/api-manual" className="underline">Documentação da API</Link> para exemplos completos ou teste interativamente no{" "}
+                <a href="/api/swagger" target="_blank" rel="noopener noreferrer" className="underline">Swagger UI</a>.
               </InfoBox>
             </SubSection>
 
@@ -545,8 +550,8 @@ export default function Manual() {
           </Section>
 
           {/* 9. Perfil */}
-          <Section id="perfil" title="9. Perfil, 2FA e API Keys">
-            <p className="text-muted-foreground">Acesse seu perfil pelo menu lateral <strong>"Perfil"</strong>. Permite alterar a senha, configurar o 2FA e gerenciar suas API Keys para integração com scripts e VMs.</p>
+          <Section id="perfil" title="9. Perfil, 2FA, API Keys e Certificados">
+            <p className="text-muted-foreground">Acesse seu perfil pelo menu lateral <strong>"Perfil"</strong>. Permite alterar a senha, configurar o 2FA, gerenciar API Keys e gerar Certificados de cliente para autenticação de dois fatores na API.</p>
 
             <SubSection title="9.1 Alterar senha">
               <div className="space-y-2">
@@ -568,9 +573,8 @@ export default function Manual() {
 
             <SubSection title="9.3 Gerenciar API Keys">
               <p className="text-sm text-muted-foreground mb-3">
-                API Keys permitem que scripts, VMs e serviços consultem o vault programaticamente,
-                sem usar suas credenciais de login. São a <strong>única forma</strong> de obter valores
-                reais de itens do tipo Credencial fora do browser.
+                API Keys permitem que scripts, VMs e serviços consultem o vault programaticamente.
+                Para autenticação completa (sem restrição de IP), use uma API Key junto com um Certificado de cliente (seção 9.4).
               </p>
 
               <MockScreen label="/profile — aba API Keys">
@@ -609,15 +613,73 @@ export default function Manual() {
                   <Step n={1}>Na aba <strong>"API Keys"</strong> do seu perfil, clique em <strong>"Gerar Nova API Key"</strong>.</Step>
                   <Step n={2}>Dê um nome descritivo que identifique o serviço ou VM (ex: <code className="font-mono text-xs bg-muted px-1 rounded">vm-producao-app1</code>).</Step>
                   <Step n={3}><strong>Copie a chave imediatamente.</strong> O valor completo é exibido <strong>uma única vez</strong> e não pode ser recuperado depois.</Step>
-                  <Step n={4}>Configure a chave como variável de ambiente na VM (<code className="font-mono text-xs bg-muted px-1 rounded">export VAULTGUARD_API_KEY="vgk_..."</code>).</Step>
-                  <Step n={5}>Use o header <code className="font-mono text-xs bg-muted px-1 rounded">X-API-Key: vgk_...</code> nas requisições à API.</Step>
+                  <Step n={4}>Configure como variável de ambiente na VM (<code className="font-mono text-xs bg-muted px-1 rounded">export VAULTGUARD_API_KEY="vgk_..."</code>).</Step>
+                  <Step n={5}>Use sempre junto com um Certificado (seção 9.4) para autenticação de dois fatores sem restrição de IP.</Step>
                 </div>
               </div>
 
               <InfoBox title="Uma chave por serviço" color="green">
-                Crie uma API Key separada para cada VM ou serviço. Assim, se uma chave for comprometida,
-                você pode revogar <strong>apenas ela</strong> sem impactar os demais serviços.
+                Crie uma API Key separada para cada VM ou serviço. Se uma chave for comprometida,
+                revogue <strong>apenas ela</strong> sem impactar outros serviços.
                 Para revogar: clique no ícone de lixeira ao lado da chave no Perfil → API Keys.
+              </InfoBox>
+            </SubSection>
+
+            <SubSection title="9.4 Gerenciar Certificados de Cliente">
+              <p className="text-sm text-muted-foreground mb-3">
+                Certificados de cliente são usados em conjunto com a API Key para autenticação de dois fatores.
+                Ao enviar API Key + Certificado, <strong>não há verificação de IP</strong> — a segurança é garantida pelos dois fatores.
+                O valor que você usa na API é o <strong>fingerprint</strong> (SHA-256) do certificado.
+              </p>
+
+              <MockScreen label="/profile — aba Certificados">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">Certificados</p>
+                    <div className="bg-primary text-primary-foreground text-xs px-2.5 py-1 rounded-md font-medium">+ Gerar Novo</div>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { name: "vm-producao-cert", fp: "3a:b2:c1:d0:...", active: true, exp: "04/05/2027" },
+                      { name: "pipeline-ci-cert", fp: "7f:8e:9d:ac:...", active: true, exp: "04/05/2027" },
+                    ].map((c) => (
+                      <div key={c.name} className="border border-border rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{c.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-mono text-muted-foreground">{c.fp}</span>
+                            <Badge variant="outline" className="text-[10px]">Ativo</Badge>
+                            <span className="text-xs text-muted-foreground">expira: {c.exp}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-destructive/70 cursor-pointer hover:text-destructive">🗑 Revogar</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </MockScreen>
+
+              <div className="space-y-2 mt-3">
+                <p className="text-sm font-semibold">Gerar um novo Certificado:</p>
+                <div className="space-y-2">
+                  <Step n={1}>Na aba <strong>"Certificados"</strong> do seu perfil, clique em <strong>"Gerar Novo Certificado"</strong>.</Step>
+                  <Step n={2}>Dê um nome descritivo (ex: <code className="font-mono text-xs bg-muted px-1 rounded">vm-producao-cert</code>) e defina a validade em dias.</Step>
+                  <Step n={3}><strong>Anote o Fingerprint</strong> exibido — é o valor que você enviará no header <code className="font-mono text-xs bg-muted px-1 rounded">X-Certificate</code>.</Step>
+                  <Step n={4}>O PEM bundle (certificado + chave privada) é exibido uma única vez. Salve-o se precisar para outros fins.</Step>
+                  <Step n={5}>Configure o fingerprint como variável de ambiente (<code className="font-mono text-xs bg-muted px-1 rounded">export VAULTGUARD_CERT_FP="3a:b2:c1:d0:..."</code>).</Step>
+                </div>
+              </div>
+
+              <InfoBox title="Como usar o Certificado na API" color="blue">
+                Envie o fingerprint no header <code className="font-mono text-xs">X-Certificate</code> junto com o <code className="font-mono text-xs">X-API-Key</code> em cada requisição.
+                Quando ambos estão presentes, a verificação de IP do vault é automaticamente ignorada.
+                Veja exemplos completos na <Link href="/api-manual" className="underline">Documentação da API</Link> ou no{" "}
+                <a href="/api/swagger" target="_blank" rel="noopener noreferrer" className="underline">Swagger UI</a>.
+              </InfoBox>
+
+              <InfoBox title="Renovação de certificado" color="amber">
+                Certificados têm data de expiração. Antes de expirar, gere um novo certificado, atualize a variável de ambiente
+                nas VMs e revogue o antigo. O Perfil exibe a data de expiração de cada certificado.
               </InfoBox>
             </SubSection>
           </Section>
@@ -656,14 +718,19 @@ export default function Manual() {
           </Section>
 
           {/* Footer */}
-          <div className="border-t border-border pt-8 flex items-center justify-between text-sm text-muted-foreground">
+          <div className="border-t border-border pt-8 flex items-center justify-between text-sm text-muted-foreground flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-primary" />
               <span>VaultGuard — Manual de Operação</span>
             </div>
-            <Link href="/api-manual" className="flex items-center gap-1 hover:text-foreground">
-              Documentação da API <ChevronRight className="h-4 w-4" />
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/api-manual" className="flex items-center gap-1 hover:text-foreground">
+                Documentação da API <ChevronRight className="h-4 w-4" />
+              </Link>
+              <a href="/api/swagger" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-foreground">
+                <Server className="h-4 w-4" /> Swagger UI
+              </a>
+            </div>
           </div>
         </main>
       </div>
