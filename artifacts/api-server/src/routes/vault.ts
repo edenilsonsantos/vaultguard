@@ -31,13 +31,35 @@ async function logAccess(vaultItemId: number, userId: number, req: any): Promise
   });
 }
 
-function isHostAllowed(allowedHostsMode: string, allowedHosts: string | null, clientIp: string | undefined): boolean {
+function isHostAllowed(allowedHostsMode: string, allowedHosts: string | null, req: any): boolean {
   if (allowedHostsMode === "all") return true;
-  if (!clientIp || !allowedHosts) return false;
+  if (!allowedHosts) return false;
+
+  // Candidatos: req.ip (respeitando trust proxy), todos os IPs do X-Forwarded-For e X-Real-IP
+  const candidates = new Set<string>();
+
+  const addIp = (ip: string | undefined) => {
+    if (!ip) return;
+    candidates.add(ip.trim());
+    candidates.add(ip.trim().replace(/^::ffff:/, ""));
+  };
+
+  addIp(req.ip);
+  (req.ips ?? []).forEach(addIp);
+
+  // X-Forwarded-For pode ter múltiplos IPs separados por vírgula
+  const xForwardedFor = req.headers?.["x-forwarded-for"] as string | undefined;
+  if (xForwardedFor) {
+    xForwardedFor.split(",").forEach((ip: string) => addIp(ip.trim()));
+  }
+
+  addIp(req.headers?.["x-real-ip"]);
+
+  if (candidates.size === 0) return false;
+
   try {
     const hosts = JSON.parse(allowedHosts) as string[];
-    const normalizedIp = clientIp.replace(/^::ffff:/, "");
-    return hosts.some((h) => h.trim() === clientIp || h.trim() === normalizedIp);
+    return hosts.some((h) => candidates.has(h.trim()));
   } catch {
     return false;
   }
@@ -223,9 +245,8 @@ router.get("/vault/byID/:id", requireAuthOrApiKeyAndCert, async (req, res): Prom
   }
 
   if (req.isApiKeyAuth) {
-    const clientIp = req.ip;
-    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
-      res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp, allowedHostsMode: item.allowedHostsMode });
+    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, req)) {
+      res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp: req.ip, xForwardedFor: req.headers["x-forwarded-for"], allowedHostsMode: item.allowedHostsMode });
       return;
     }
   }
@@ -263,9 +284,8 @@ router.get("/vault/byName/:name", requireAuthOrApiKeyAndCert, async (req, res): 
   }
 
   if (req.isApiKeyAuth) {
-    const clientIp = req.ip;
-    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
-      res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp, allowedHostsMode: item.allowedHostsMode });
+    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, req)) {
+      res.status(403).json({ error: "Acesso via API não permitido para este host", clientIp: req.ip, xForwardedFor: req.headers["x-forwarded-for"], allowedHostsMode: item.allowedHostsMode });
       return;
     }
   }
@@ -301,11 +321,11 @@ router.get("/vault/:id", requireAuthOrApiKeyAndCert, async (req, res): Promise<v
   }
 
   if (req.isApiKeyAuth) {
-    const clientIp = req.ip;
-    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, clientIp)) {
+    if (!isHostAllowed(item.allowedHostsMode, item.allowedHosts, req)) {
       res.status(403).json({
         error: "Acesso via API não permitido para este host",
-        clientIp,
+        clientIp: req.ip,
+        xForwardedFor: req.headers["x-forwarded-for"],
         allowedHostsMode: item.allowedHostsMode,
       });
       return;

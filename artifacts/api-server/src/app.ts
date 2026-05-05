@@ -6,6 +6,9 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Confiar no proxy reverso (Replit / nginx) para ler o IP real do cliente via X-Forwarded-For
+app.set("trust proxy", true);
+
 app.use(
   pinoHttp({
     logger,
