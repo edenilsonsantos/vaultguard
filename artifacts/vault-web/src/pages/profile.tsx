@@ -127,6 +127,7 @@ export default function Profile() {
   const [newCert, setNewCert] = useState<{ name: string; pemBundle: string } | null>(null);
   const [copiedRawKey, setCopiedRawKey] = useState(false);
   const [copiedPem, setCopiedPem] = useState(false);
+  const [copiedFingerprintId, setCopiedFingerprintId] = useState<number | null>(null);
   const [keyToRevoke, setKeyToRevoke] = useState<number | null>(null);
   const [certToRevoke, setCertToRevoke] = useState<number | null>(null);
 
@@ -633,30 +634,72 @@ export default function Profile() {
                   ) : (
                     <div className="space-y-4">
                       {certs?.map((cert) => (
-                        <div key={cert.id} className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{cert.name}</span>
-                              {!cert.isActive && <Badge variant="destructive">Revogado</Badge>}
-                              {cert.isActive && new Date(cert.expiresAt) < new Date() && <Badge variant="destructive">Expirado</Badge>}
+                        <div key={cert.id} className="p-4 border border-border rounded-lg bg-muted/30 space-y-3">
+                          {/* Header row: name + badges + action buttons */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-medium truncate">{cert.name}</span>
+                              {!cert.isActive && <Badge variant="destructive" className="shrink-0">Revogado</Badge>}
+                              {cert.isActive && new Date(cert.expiresAt) < new Date() && <Badge variant="destructive" className="shrink-0">Expirado</Badge>}
                             </div>
-                            <div className="text-sm font-mono text-muted-foreground mt-1 truncate max-w-xs">{cert.fingerprint}</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Criado: {format(new Date(cert.createdAt), "dd/MM/yyyy")}
-                              <br />
-                              Expira: {format(new Date(cert.expiresAt), "dd/MM/yyyy")}
+                            {cert.isActive && (
+                              <div className="flex gap-1 shrink-0">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" onClick={() => handleDownloadCert(cert.id)} disabled={isDownloadingCert === cert.id}>
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Baixar PEM</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setCertToRevoke(cert.id)}>
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Revogar certificado</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Fingerprint block */}
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wide">Fingerprint SHA-256 <span className="normal-case text-muted-foreground/60">(usar no header X-Certificate)</span></p>
+                            <div className="relative group">
+                              <div className="font-mono text-xs bg-background border border-border rounded-md px-3 py-2 pr-10 break-all leading-relaxed text-foreground/80 select-all">
+                                {cert.fingerprint}
+                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(cert.fingerprint);
+                                      setCopiedFingerprintId(cert.id);
+                                      setTimeout(() => setCopiedFingerprintId(null), 2000);
+                                    }}
+                                  >
+                                    {copiedFingerprintId === cert.id
+                                      ? <Check className="w-3.5 h-3.5 text-green-500" />
+                                      : <Copy className="w-3.5 h-3.5" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {copiedFingerprintId === cert.id ? "Copiado!" : "Copiar fingerprint"}
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
-                          {cert.isActive && (
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="icon" onClick={() => handleDownloadCert(cert.id)} disabled={isDownloadingCert === cert.id}>
-                                <Download className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => setCertToRevoke(cert.id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          )}
+
+                          {/* Dates */}
+                          <div className="flex gap-4 text-xs text-muted-foreground">
+                            <span>Criado: <span className="text-foreground/70">{format(new Date(cert.createdAt), "dd/MM/yyyy")}</span></span>
+                            <span>Expira: <span className={new Date(cert.expiresAt) < new Date() ? "text-destructive" : "text-foreground/70"}>{format(new Date(cert.expiresAt), "dd/MM/yyyy")}</span></span>
+                          </div>
                         </div>
                       ))}
                     </div>
