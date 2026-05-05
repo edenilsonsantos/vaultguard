@@ -148,9 +148,9 @@ export default function Settings() {
                   Tempo máximo de sessão
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Após o período selecionado desde o login, o usuário é desconectado automaticamente do
-                  navegador, independentemente de atividade. Defina como <strong>Nunca</strong> para
-                  sessões sem expiração (limitadas apenas pelo JWT de 24 h).
+                  O usuário é desconectado automaticamente após o período selecionado sem nenhuma atividade
+                  no navegador. Qualquer ação na página — clique, navegação, scroll ou digitação — zera o contador.
+                  Defina como <strong>Nunca</strong> para desativar a expiração por inatividade.
                 </p>
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-500/80">
                   <Info className="w-3.5 h-3.5" />
