@@ -53,6 +53,7 @@ router.get("/logs", requireAuth, async (req, res): Promise<void> => {
         action: log.action,
         ipAddress: log.ipAddress ?? null,
         userAgent: log.userAgent ?? null,
+        authMethod: log.authMethod ?? null,
         createdAt: log.createdAt.toISOString(),
       };
     })
@@ -119,6 +120,7 @@ router.get("/logs/stats", requireAuth, async (req, res): Promise<void> => {
         action: log.action,
         ipAddress: log.ipAddress ?? null,
         userAgent: log.userAgent ?? null,
+        authMethod: log.authMethod ?? null,
         createdAt: log.createdAt.toISOString(),
       };
     })

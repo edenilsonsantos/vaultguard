@@ -551,6 +551,12 @@ export const ListAuditLogsResponse = zod.object({
       action: zod.string(),
       ipAddress: zod.string().nullable(),
       userAgent: zod.string().nullable(),
+      authMethod: zod
+        .string()
+        .nullable()
+        .describe(
+          '\"api\" para acesso via API Key, \"browser\" para sessão JWT',
+        ),
       createdAt: zod.string(),
     }),
   ),
@@ -582,6 +588,12 @@ export const GetAuditStatsResponse = zod.object({
       action: zod.string(),
       ipAddress: zod.string().nullable(),
       userAgent: zod.string().nullable(),
+      authMethod: zod
+        .string()
+        .nullable()
+        .describe(
+          '\"api\" para acesso via API Key, \"browser\" para sessão JWT',
+        ),
       createdAt: zod.string(),
     }),
   ),

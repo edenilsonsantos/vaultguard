@@ -230,6 +230,11 @@ export interface AuditLog {
   ipAddress: string | null;
   /** @nullable */
   userAgent: string | null;
+  /**
+   * "api" para acesso via API Key, "browser" para sessão JWT
+   * @nullable
+   */
+  authMethod: string | null;
   createdAt: string;
 }
 

@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
-import { ShieldAlert, ShieldCheck, Activity, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Activity, Search, ChevronLeft, ChevronRight, Globe, KeyRound } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
@@ -139,11 +139,12 @@ export default function Logs() {
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="w-[180px]">Timestamp</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Target Item</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead className="hidden md:table-cell">Client</TableHead>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Ação</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead>IP</TableHead>
+                  <TableHead>Origem</TableHead>
+                  <TableHead className="hidden md:table-cell">Cliente</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -155,21 +156,22 @@ export default function Logs() {
                       <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                       <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-48" /></TableCell>
                     </TableRow>
                   ))
                 ) : logPage?.logs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       <Search className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
-                      No audit events found matching criteria.
+                      Nenhum evento encontrado com os filtros aplicados.
                     </TableCell>
                   </TableRow>
                 ) : (
                   logPage?.logs.map((log) => (
                     <TableRow key={log.id} className="font-mono text-sm">
                       <TableCell className="text-muted-foreground">
-                        {format(new Date(log.createdAt), 'MMM d, HH:mm:ss')}
+                        {format(new Date(log.createdAt), 'dd/MM HH:mm:ss')}
                       </TableCell>
                       <TableCell className="font-medium text-foreground">
                         @{log.username}
@@ -184,6 +186,19 @@ export default function Logs() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {log.ipAddress || '—'}
+                      </TableCell>
+                      <TableCell>
+                        {log.authMethod === "api" ? (
+                          <Badge variant="outline" className="text-[10px] px-2 py-0 h-5 bg-amber-500/10 text-amber-400 border-amber-500/30 flex items-center gap-1 w-fit">
+                            <KeyRound className="w-2.5 h-2.5" /> API
+                          </Badge>
+                        ) : log.authMethod === "browser" ? (
+                          <Badge variant="outline" className="text-[10px] px-2 py-0 h-5 bg-primary/10 text-primary border-primary/30 flex items-center gap-1 w-fit">
+                            <Globe className="w-2.5 h-2.5" /> Browser
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground truncate max-w-[200px]" title={log.userAgent || ''}>
                         {log.userAgent || '—'}

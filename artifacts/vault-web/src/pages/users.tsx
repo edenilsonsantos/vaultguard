@@ -170,6 +170,7 @@ export default function Users() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
+                <TableHead className="w-14 text-center">ID</TableHead>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Perfil</TableHead>
                 <TableHead>Email</TableHead>
@@ -181,6 +182,7 @@ export default function Users() {
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
+                      <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
@@ -191,13 +193,16 @@ export default function Users() {
                 : filteredUsers?.length === 0
                 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         Nenhum usuário encontrado.
                       </TableCell>
                     </TableRow>
                   )
                 : filteredUsers?.map((user) => (
                     <TableRow key={user.id} className={!user.isActive ? "opacity-60" : ""}>
+                      <TableCell className="text-center">
+                        <span className="text-xs font-mono text-muted-foreground">{user.id}</span>
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">

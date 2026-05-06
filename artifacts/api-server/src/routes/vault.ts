@@ -28,6 +28,7 @@ async function logAccess(vaultItemId: number, userId: number, req: any): Promise
     action: "read",
     ipAddress: req.ip ?? null,
     userAgent: req.headers["user-agent"] ?? null,
+    authMethod: req.isApiKeyAuth ? "api" : "browser",
   });
 }
 

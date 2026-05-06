@@ -1316,6 +1316,9 @@ components:
           type: ["string", "null"]
         userAgent:
           type: ["string", "null"]
+        authMethod:
+          type: ["string", "null"]
+          description: '"api" para acesso via API Key, "browser" para sessão JWT'
         createdAt:
           type: string
       required:
@@ -1327,6 +1330,7 @@ components:
         - action
         - ipAddress
         - userAgent
+        - authMethod
         - createdAt
 
     AuditLogPage:

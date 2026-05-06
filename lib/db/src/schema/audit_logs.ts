@@ -11,6 +11,7 @@ export const auditLogsTable = pgTable("audit_logs", {
   action: text("action").notNull().default("read"),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  authMethod: text("auth_method"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
