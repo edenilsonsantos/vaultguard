@@ -86,13 +86,11 @@ pnpm install
 cp .env.example .env
 # Edite .env com suas configurações
 
-# 4. Aplique o schema no banco de dados
-pnpm --filter @workspace/db run push
-
-# 5. Inicie o servidor da API
+# 4. Inicie o servidor da API
+#    As tabelas do banco são criadas automaticamente no primeiro boot
 pnpm --filter @workspace/api-server run dev
 
-# 6. Em outro terminal, inicie o frontend
+# 5. Em outro terminal, inicie o frontend
 pnpm --filter @workspace/vault-web run dev
 ```
 

@@ -23,7 +23,8 @@ Full-stack password vault web app ("VaultGuard") built in Portuguese. pnpm works
 
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/db run generate` — generate new SQL migration file after schema changes
+- `pnpm --filter @workspace/db run push` — push DB schema changes directly (dev-only shortcut, no migration file)
 
 ## Architecture
 
