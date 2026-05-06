@@ -21,6 +21,7 @@ Full-stack password vault web app ("VaultGuard") built in Portuguese. pnpm works
 
 ## Key Commands
 
+- `pnpm setup` — interactive setup wizard: asks for DB credentials, auto-generates SESSION_SECRET, writes `.env`
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run generate` — generate new SQL migration file after schema changes

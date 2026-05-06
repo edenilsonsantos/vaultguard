@@ -65,10 +65,14 @@
 
 ### Opção 1 — Replit (recomendado, sem configuração de servidor)
 
+O Replit gerencia a infraestrutura diretamente — não é necessário Docker, servidor ou banco de dados externo. O banco PostgreSQL é provisionado automaticamente.
+
 1. Faça um fork deste repositório no GitHub
 2. Acesse [replit.com](https://replit.com) → **Import from GitHub**
-3. O Replit detectará automaticamente o projeto. Configure as variáveis de ambiente (veja abaixo)
-4. Clique em **Deploy**
+3. No painel do Replit, adicione as variáveis de ambiente em **Secrets**:
+   - `DATABASE_URL` — fornecida automaticamente pelo Replit ao provisionar o banco
+   - `SESSION_SECRET` — gere com `openssl rand -hex 64` e cole no painel
+4. Clique em **Deploy** — as tabelas são criadas automaticamente no primeiro boot
 
 ### Opção 2 — Self-hosted (Linux/macOS)
 
@@ -82,24 +86,20 @@ cd vaultguard
 # 2. Instale as dependências
 pnpm install
 
-# 3. Configure as variáveis de ambiente
-cp .env.example .env
-# Edite .env com suas configurações
+# 3. Execute o assistente de configuração
+#    Solicitará host, porta, usuário e senha do PostgreSQL.
+#    O SESSION_SECRET é gerado automaticamente.
+pnpm setup
 
 # 4. Inicie o servidor da API
-#    As tabelas do banco são criadas automaticamente no primeiro boot
+#    As tabelas são criadas automaticamente no primeiro boot
 pnpm --filter @workspace/api-server run dev
 
 # 5. Em outro terminal, inicie o frontend
 pnpm --filter @workspace/vault-web run dev
 ```
 
-### Variáveis de ambiente obrigatórias
-
-| Variável | Descrição | Exemplo |
-|---|---|---|
-| `DATABASE_URL` | String de conexão PostgreSQL | `postgres://user:pass@localhost:5432/vaultguard` |
-| `SESSION_SECRET` | Segredo para assinar tokens JWT (mínimo 64 chars) | `openssl rand -hex 64` |
+> O assistente `pnpm setup` cria o arquivo `.env` com a `DATABASE_URL` montada a partir das credenciais informadas e um `SESSION_SECRET` de 128 chars gerado aleatoriamente via `crypto.randomBytes`. Ele também testa a conexão com o banco antes de salvar.
 
 ---
 
@@ -293,9 +293,11 @@ lib/
 ### Comandos úteis
 
 ```bash
-pnpm run typecheck                          # Typecheck completo
-pnpm --filter @workspace/api-spec run codegen  # Regenerar hooks e schemas
-pnpm --filter @workspace/db run push           # Aplicar schema no banco (dev)
+pnpm setup                                     # Assistente de configuração inicial (.env)
+pnpm run typecheck                             # Typecheck completo
+pnpm --filter @workspace/api-spec run codegen  # Regenerar hooks e schemas da API
+pnpm --filter @workspace/db run generate       # Gerar arquivo SQL de migration após mudança de schema
+pnpm --filter @workspace/db run push           # Aplicar schema diretamente no banco (dev, sem gerar migration)
 ```
 
 ---
