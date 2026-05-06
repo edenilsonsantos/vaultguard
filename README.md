@@ -111,33 +111,30 @@ pnpm --filter @workspace/vault-web run dev
 
 O sistema é iniciado com 4 usuários para facilitar a exploração:
 
-| Perfil | Usuário | Senha | Observação |
-|---|---|---|---|
-| Admin | `master` | `Otopodomundo182*` | Conta administrativa principal |
-| Admin (demo) | `demo_admin` | `DC9H"lz70O\8aa` | Exibido na tela de login |
-| Usuário (demo) | `demo_user` | `DC9H"lz70O\8aa` | Exibido na tela de login |
+| Perfil | Usuário | Observação |
+|---|---|---|
+| Admin (demo) | `demo_admin` | Exibido na tela de login — use para o primeiro acesso |
+| Usuário (demo) | `demo_user` | Exibido na tela de login — conta de demonstração |
 
-> ⚠️ **Importante:** Os usuários `demo_admin` e `demo_user` são exibidos publicamente na tela de login como atalho de demonstração. Em produção, recomenda-se desativá-los após criar suas próprias contas.
+> ⚠️ **Importante:** Os usuários `demo_admin` e `demo_user` são exibidos publicamente na tela de login. As senhas estão visíveis no ambiente de demonstração. Em produção, crie sua própria conta admin e desative esses usuários imediatamente.
 
 ### Passo a passo: primeiro acesso em produção
 
-**1. Acesse com a conta `master`**
-```
-Usuário: master
-Senha:   Otopodomundo182*
-```
+**1. Acesse com a conta `demo_admin`**
+
+Na tela de login, clique no card **Admin** exibido em "Credenciais de Demonstração" — ele preenche o formulário automaticamente. Clique em **Autenticar**.
 
 **2. Crie seu próprio usuário administrador**
 
-Acesse **Usuários → (não há opção de criar pela UI)** — registre via tela de login com uma senha forte, depois promova o usuário a Admin em **Usuários → Perfil → Selecione "Admin"**.
+Saia da sessão e registre uma nova conta na tela de login com uma senha forte. Depois volte a logar como `demo_admin`, acesse **Usuários**, localize sua nova conta e altere o perfil para **Admin**.
 
-Ou, se preferir criar direto via API (com a sessão do `master`):
+Ou registre via API:
 ```bash
 curl -X POST https://seu-dominio/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"seu_admin","email":"seu@email.com","password":"SuaSenhaForte123!","fullName":"Seu Nome"}'
 ```
-Depois promova para admin em Usuários.
+Depois acesse **Usuários** e promova a conta para Admin.
 
 **3. Desative as credenciais de demonstração na tela de login**
 
@@ -146,10 +143,6 @@ Acesse **Configurações → "Exibir credenciais de demonstração"** → desati
 **4. Desative os usuários demo**
 
 Acesse **Usuários**, localize `demo_admin` e `demo_user` e desative o toggle de status de cada um. Usuários desativados não conseguem fazer login.
-
-**5. Altere a senha do `master` ou desative-o também**
-
-Acesse **Perfil → Segurança → Alterar Senha**, ou desative o usuário `master` em **Usuários** (certifique-se de que seu novo admin está ativo antes).
 
 ---
 
