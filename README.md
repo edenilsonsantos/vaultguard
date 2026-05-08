@@ -63,18 +63,7 @@
 
 ## Deploy
 
-### Opção 1 — Replit (recomendado, sem configuração de servidor)
-
-O Replit gerencia a infraestrutura diretamente — não é necessário Docker, servidor ou banco de dados externo. O banco PostgreSQL é provisionado automaticamente.
-
-1. Faça um fork deste repositório no GitHub
-2. Acesse [replit.com](https://replit.com) → **Import from GitHub**
-3. No painel do Replit, adicione as variáveis de ambiente em **Secrets**:
-   - `DATABASE_URL` — fornecida automaticamente pelo Replit ao provisionar o banco
-   - `SESSION_SECRET` — gere com `openssl rand -hex 64` e cole no painel
-4. Clique em **Deploy** — as tabelas são criadas automaticamente no primeiro boot
-
-### Opção 2 — Self-hosted (Linux/macOS)
+### Self-hosted (Linux/macOS)
 
 **Pré-requisitos:** Node.js 20+, pnpm 9+, PostgreSQL 14+
 
