@@ -67,6 +67,24 @@ router.patch("/users/:id", requireAdmin, async (req, res): Promise<void> => {
   if (parsed.data.fullName != null) updates.fullName = parsed.data.fullName;
   if (parsed.data.role != null) updates.role = parsed.data.role;
 
+  // Safety check: cannot demote the last active admin
+  if (updates.role === "user") {
+    const [target] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+    if (target?.role === "admin" && target?.isActive) {
+      const activeAdmins = await db
+        .select()
+        .from(usersTable)
+        .where(and(eq(usersTable.role, "admin"), eq(usersTable.isActive, true)));
+
+      if (activeAdmins.length <= 1) {
+        res.status(400).json({
+          error: "Não é possível rebaixar o único administrador ativo. Promova outro usuário a admin antes.",
+        });
+        return;
+      }
+    }
+  }
+
   const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, id)).returning();
 
   if (!user) {

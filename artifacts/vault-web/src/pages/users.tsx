@@ -82,8 +82,8 @@ export default function Users() {
           invalidate();
           toast({ title: "Perfil atualizado", description: "As permissões do usuário foram modificadas." });
         },
-        onError: () => {
-          toast({ variant: "destructive", title: "Falha na atualização", description: "Não foi possível alterar o perfil." });
+        onError: (err) => {
+          toast({ variant: "destructive", title: "Operação bloqueada", description: (err.data as any)?.error || "Não foi possível alterar o perfil." });
         },
       }
     );
