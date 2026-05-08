@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useListAuditLogs, useListUsers, useListVaultItems, useGetAuditStats } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -22,11 +21,14 @@ import { format } from "date-fns";
 import { ShieldAlert, ShieldCheck, Activity, Search, ChevronLeft, ChevronRight, Globe, KeyRound } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useLang } from "@/lib/i18n";
 
 export default function Logs() {
   const [page, setPage] = useState(1);
   const [userIdFilter, setUserIdFilter] = useState<string>("all");
   const [itemIdFilter, setItemIdFilter] = useState<string>("all");
+  const { t } = useLang();
+  const l = t.logs;
 
   const { data: users } = useListUsers();
   const { data: vaultItems } = useListVaultItems();
@@ -59,8 +61,8 @@ export default function Logs() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-        <p className="text-muted-foreground">Immutable 30-day history of all system events.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{l.title}</h1>
+        <p className="text-muted-foreground">{l.subtitle}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
@@ -68,7 +70,7 @@ export default function Logs() {
           <CardContent className="p-6">
             <div className="flex items-center space-x-2 text-muted-foreground mb-2">
               <Activity className="h-4 w-4" />
-              <h3 className="text-sm font-medium">Total Events</h3>
+              <h3 className="text-sm font-medium">{l.totalEvents}</h3>
             </div>
             <div className="text-3xl font-bold">{stats?.totalAccesses ?? "..."}</div>
           </CardContent>
@@ -77,7 +79,7 @@ export default function Logs() {
           <CardContent className="p-6">
             <div className="flex items-center space-x-2 text-muted-foreground mb-2">
               <ShieldCheck className="h-4 w-4" />
-              <h3 className="text-sm font-medium">Active Users</h3>
+              <h3 className="text-sm font-medium">{l.activeUsers}</h3>
             </div>
             <div className="text-3xl font-bold">{stats?.uniqueUsers ?? "..."}</div>
           </CardContent>
@@ -86,9 +88,9 @@ export default function Logs() {
           <CardContent className="p-6">
             <div className="flex items-center space-x-2 text-destructive mb-2">
               <ShieldAlert className="h-4 w-4" />
-              <h3 className="text-sm font-medium">System Status</h3>
+              <h3 className="text-sm font-medium">{l.systemStatus}</h3>
             </div>
-            <div className="text-lg font-semibold text-destructive">Secure Logging Active</div>
+            <div className="text-lg font-semibold text-destructive">{l.systemStatusValue}</div>
           </CardContent>
         </Card>
       </div>
@@ -100,10 +102,10 @@ export default function Logs() {
               <div className="flex-1">
                 <Select value={userIdFilter} onValueChange={(v) => { setUserIdFilter(v); setPage(1); }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Filter by User" />
+                    <SelectValue placeholder={l.filterByUser} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Users</SelectItem>
+                    <SelectItem value="all">{l.allUsers}</SelectItem>
                     {users?.map(u => (
                       <SelectItem key={u.id} value={u.id.toString()}>@{u.username}</SelectItem>
                     ))}
@@ -113,10 +115,10 @@ export default function Logs() {
               <div className="flex-1">
                 <Select value={itemIdFilter} onValueChange={(v) => { setItemIdFilter(v); setPage(1); }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Filter by Vault Item" />
+                    <SelectValue placeholder={l.filterByItem} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Items</SelectItem>
+                    <SelectItem value="all">{l.allItems}</SelectItem>
                     {vaultItems?.map(v => (
                       <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>
                     ))}
@@ -129,7 +131,7 @@ export default function Logs() {
               setItemIdFilter("all");
               setPage(1);
             }}>
-              Reset Filters
+              {l.resetFilters}
             </Button>
           </div>
         </CardHeader>
@@ -164,7 +166,7 @@ export default function Logs() {
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       <Search className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
-                      Nenhum evento encontrado com os filtros aplicados.
+                      {l.noEvents}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -209,16 +211,20 @@ export default function Logs() {
               </TableBody>
             </Table>
           </div>
-          
+
           {logPage && logPage.total > 0 && (
             <div className="flex items-center justify-between p-4 border-t border-border bg-muted/20">
               <div className="text-sm text-muted-foreground">
-                Showing {((page - 1) * logPage.pageSize) + 1} to {Math.min(page * logPage.pageSize, logPage.total)} of {logPage.total} entries
+                {l.showing(
+                  ((page - 1) * logPage.pageSize) + 1,
+                  Math.min(page * logPage.pageSize, logPage.total),
+                  logPage.total
+                )}
               </div>
               <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1 || isLoading}
                 >
@@ -227,9 +233,9 @@ export default function Logs() {
                 <div className="flex items-center px-4 text-sm font-medium">
                   {page}
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setPage(p => p + 1)}
                   disabled={page * logPage.pageSize >= logPage.total || isLoading}
                 >
