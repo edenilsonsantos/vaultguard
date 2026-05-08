@@ -452,6 +452,10 @@ router.delete("/vault/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  // Remove child records before deleting the parent (FK constraints)
+  await db.delete(vaultEntriesTable).where(eq(vaultEntriesTable.vaultItemId, id));
+  await db.delete(vaultItemAccessTable).where(eq(vaultItemAccessTable.vaultItemId, id));
+  await db.delete(auditLogsTable).where(eq(auditLogsTable.vaultItemId, id));
   await db.delete(vaultItemsTable).where(eq(vaultItemsTable.id, id));
   res.sendStatus(204);
 });
