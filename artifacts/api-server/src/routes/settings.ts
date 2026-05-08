@@ -26,8 +26,17 @@ router.get("/settings", async (_req, res): Promise<void> => {
   res.json(settings.map((s) => ({ key: s.key, value: s.value })));
 });
 
+const DEMO_USERNAMES = ["demo_admin", "demo_user"];
+const SETTINGS_BLOCKED_FOR_DEMO = ["show_demo_credentials"];
+
 router.put("/settings/:key", requireAdmin, async (req, res): Promise<void> => {
   const key = Array.isArray(req.params.key) ? req.params.key[0] : req.params.key;
+
+  const username = (req.user as { username?: string } | undefined)?.username ?? "";
+  if (DEMO_USERNAMES.includes(username) && SETTINGS_BLOCKED_FOR_DEMO.includes(key)) {
+    res.status(403).json({ error: "Usuários de demonstração não podem alterar esta configuração." });
+    return;
+  }
 
   if (!req.body || typeof req.body.value !== "string") {
     res.status(400).json({ error: "Valor é obrigatório" });

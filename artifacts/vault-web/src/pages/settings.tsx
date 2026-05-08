@@ -5,7 +5,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2, Info, Clock } from "lucide-react";
+import { Settings2, Info, Clock, ShieldOff } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -13,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const DEMO_USERNAMES = ["demo_admin", "demo_user"];
 
 const SESSION_TIMEOUT_OPTIONS = [
   { value: "0",    label: "Nunca (sem limite)" },
@@ -29,9 +38,12 @@ const SESSION_TIMEOUT_OPTIONS = [
 
 export default function Settings() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useGetSettings();
   const updateSettingMutation = useUpdateSetting();
+
+  const isDemoUser = DEMO_USERNAMES.includes(user?.username ?? "");
 
   const showDemo = settings?.find((s) => s.key === "show_demo_credentials")?.value !== "false";
   const sessionTimeout = settings?.find((s) => s.key === "session_timeout_minutes")?.value ?? "0";
@@ -102,7 +114,7 @@ export default function Settings() {
           ) : (
             <div className="flex items-start justify-between gap-6">
               <div className="space-y-1 flex-1">
-                <Label htmlFor="show-demo" className="text-sm font-medium">
+                <Label htmlFor="show-demo" className={`text-sm font-medium ${isDemoUser ? "text-muted-foreground" : ""}`}>
                   Exibir credenciais de demonstração
                 </Label>
                 <p className="text-xs text-muted-foreground">
@@ -114,13 +126,35 @@ export default function Settings() {
                   <Info className="w-3.5 h-3.5" />
                   <span>Desative em produção para não expor credenciais de teste.</span>
                 </div>
+                {isDemoUser && (
+                  <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground border border-border rounded-md px-2.5 py-1.5 bg-muted/40 w-fit">
+                    <ShieldOff className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Indisponível para usuários de demonstração. Acesse com uma conta admin real para alterar esta configuração.
+                    </span>
+                  </div>
+                )}
               </div>
-              <Switch
-                id="show-demo"
-                checked={showDemo}
-                onCheckedChange={handleToggleDemoCredentials}
-                disabled={updateSettingMutation.isPending}
-              />
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={isDemoUser ? 0 : -1} className={isDemoUser ? "cursor-not-allowed" : ""}>
+                      <Switch
+                        id="show-demo"
+                        checked={showDemo}
+                        onCheckedChange={handleToggleDemoCredentials}
+                        disabled={updateSettingMutation.isPending || isDemoUser}
+                        className={isDemoUser ? "opacity-40" : ""}
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  {isDemoUser && (
+                    <TooltipContent side="left" className="max-w-56 text-center">
+                      Usuários de demonstração não podem alterar esta configuração.
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </CardContent>
