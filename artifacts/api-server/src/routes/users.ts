@@ -96,6 +96,21 @@ router.delete("/users/:id", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
+  // Safety check: cannot delete the last active admin
+  if (target.role === "admin" && target.isActive) {
+    const activeAdmins = await db
+      .select()
+      .from(usersTable)
+      .where(and(eq(usersTable.role, "admin"), eq(usersTable.isActive, true)));
+
+    if (activeAdmins.length <= 1) {
+      res.status(400).json({
+        error: "Não é possível excluir o único administrador ativo. Promova outro usuário a admin antes de excluir este.",
+      });
+      return;
+    }
+  }
+
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.sendStatus(204);
 });

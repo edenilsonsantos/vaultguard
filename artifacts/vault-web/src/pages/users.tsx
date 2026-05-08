@@ -99,8 +99,8 @@ export default function Users() {
           toast({ title: "Usuário removido", description: "Identidade excluída do sistema." });
           setUserToDelete(null);
         },
-        onError: () => {
-          toast({ variant: "destructive", title: "Falha na exclusão", description: "Não foi possível remover o usuário." });
+        onError: (err) => {
+          toast({ variant: "destructive", title: "Falha na exclusão", description: (err.data as any)?.error || "Não foi possível remover o usuário." });
           setUserToDelete(null);
         },
       }
