@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IRouter } from "express";
 import { db, vaultItemsTable, vaultEntriesTable, vaultItemAccessTable, usersTable } from "@workspace/db";
-import { eq, and, or, inArray, sql, count, desc } from "drizzle-orm";
+import { eq, and, or, inArray, sql, count, desc, isNull, isNotNull } from "drizzle-orm";
 import { requireAuth, requireAuthOrApiKey, requireAuthOrApiKeyAndCert } from "../lib/auth";
 import { encryptValue, decryptValue } from "../lib/crypto";
 import { CreateVaultItemBody, UpdateVaultItemBody } from "@workspace/api-zod";
@@ -96,6 +96,17 @@ function formatVaultItemSummary(
   };
 }
 
+function formatTrashItem(
+  item: typeof vaultItemsTable.$inferSelect,
+  entryCount: number,
+  creatorUsername: string
+) {
+  return {
+    ...formatVaultItemSummary(item, entryCount, creatorUsername),
+    deletedAt: item.deletedAt!.toISOString(),
+  };
+}
+
 function formatVaultItem(
   item: typeof vaultItemsTable.$inferSelect,
   entries: { key: string; encryptedValue: string }[],
@@ -126,7 +137,7 @@ function formatVaultItem(
 
 router.get("/vault", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
-  const allItems = await db.select().from(vaultItemsTable);
+  const allItems = await db.select().from(vaultItemsTable).where(isNull(vaultItemsTable.deletedAt));
 
   const accessChecks = await Promise.all(
     allItems.map(async (item) => ({
@@ -151,9 +162,27 @@ router.get("/vault", requireAuth, async (req, res): Promise<void> => {
   res.json(result);
 });
 
+router.get("/vault/trash", requireAuth, async (req, res): Promise<void> => {
+  const trashedItems = await db
+    .select()
+    .from(vaultItemsTable)
+    .where(isNotNull(vaultItemsTable.deletedAt))
+    .orderBy(desc(vaultItemsTable.deletedAt));
+
+  const result = await Promise.all(
+    trashedItems.map(async (item) => {
+      const entries = await db.select().from(vaultEntriesTable).where(eq(vaultEntriesTable.vaultItemId, item.id));
+      const creator = await db.select().from(usersTable).where(eq(usersTable.id, item.createdBy));
+      return formatTrashItem(item, entries.length, creator[0]?.username ?? "unknown");
+    })
+  );
+
+  res.json(result);
+});
+
 router.get("/vault/stats", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
-  const allItems = await db.select().from(vaultItemsTable);
+  const allItems = await db.select().from(vaultItemsTable).where(isNull(vaultItemsTable.deletedAt));
 
   const accessChecks = await Promise.all(
     allItems.map(async (item) => ({
@@ -452,9 +481,58 @@ router.delete("/vault/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Remove child records before deleting the parent (FK constraints)
-  await db.delete(vaultEntriesTable).where(eq(vaultEntriesTable.vaultItemId, id));
-  await db.delete(vaultItemAccessTable).where(eq(vaultItemAccessTable.vaultItemId, id));
+  const [item] = await db.select().from(vaultItemsTable).where(eq(vaultItemsTable.id, id));
+  if (!item) {
+    res.status(404).json({ error: "Item não encontrado" });
+    return;
+  }
+  if (item.deletedAt) {
+    res.status(409).json({ error: "Item já está na lixeira." });
+    return;
+  }
+
+  // Soft delete: mark as deleted
+  await db.update(vaultItemsTable).set({ deletedAt: new Date() }).where(eq(vaultItemsTable.id, id));
+  res.sendStatus(204);
+});
+
+router.post("/vault/:id/restore", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const [item] = await db.select().from(vaultItemsTable).where(eq(vaultItemsTable.id, id));
+  if (!item || !item.deletedAt) {
+    res.status(404).json({ error: "Item não encontrado na lixeira." });
+    return;
+  }
+
+  await db.update(vaultItemsTable).set({ deletedAt: null }).where(eq(vaultItemsTable.id, id));
+
+  const entries = await db.select().from(vaultEntriesTable).where(eq(vaultEntriesTable.vaultItemId, id));
+  const creator = await db.select().from(usersTable).where(eq(usersTable.id, item.createdBy));
+  const restored = { ...item, deletedAt: null };
+  res.json(formatVaultItemSummary(restored as any, entries.length, creator[0]?.username ?? "unknown"));
+});
+
+router.delete("/vault/:id/permanent", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const [item] = await db.select().from(vaultItemsTable).where(eq(vaultItemsTable.id, id));
+  if (!item) {
+    res.status(404).json({ error: "Item não encontrado." });
+    return;
+  }
+
+  // Hard delete with cascade for non-cascading FK tables
   await db.delete(auditLogsTable).where(eq(auditLogsTable.vaultItemId, id));
   await db.delete(vaultItemsTable).where(eq(vaultItemsTable.id, id));
   res.sendStatus(204);

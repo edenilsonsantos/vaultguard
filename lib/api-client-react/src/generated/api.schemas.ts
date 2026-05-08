@@ -158,6 +158,23 @@ export interface UpdateVaultItemBody {
   entries?: VaultEntry[];
 }
 
+export interface VaultTrashItem {
+  id: number;
+  name: string;
+  category: string;
+  /** @nullable */
+  description: string | null;
+  accessControl: string;
+  allowedHostsMode: string;
+  allowedHosts: string[];
+  entryCount: number;
+  createdBy: number;
+  createdByUsername: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string;
+}
+
 export interface VaultStats {
   totalItems: number;
   credentialCount: number;

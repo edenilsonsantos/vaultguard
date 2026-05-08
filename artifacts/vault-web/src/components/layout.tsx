@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Shield, LayoutDashboard, KeyRound, Users, Activity, UserCircle,
-  LogOut, Settings, BookOpen, Code2, Menu, X, ExternalLink,
+  LogOut, Settings, BookOpen, Code2, Menu, X, ExternalLink, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Vault", href: "/vault", icon: KeyRound },
+    { name: "Lixeira", href: "/vault/trash", icon: Trash2 },
     { name: "Audit Logs", href: "/logs", icon: Activity },
     ...(isAdmin ? [{ name: "Usuários", href: "/users", icon: Users }] : []),
   ];

@@ -49,6 +49,7 @@ import type {
   VaultItem,
   VaultItemSummary,
   VaultStats,
+  VaultTrashItem,
   VerifyTwoFactorBody,
 } from "./api.schemas";
 
@@ -1960,6 +1961,249 @@ export const useDeleteVaultItem = <
   TContext
 > => {
   return useMutation(getDeleteVaultItemMutationOptions(options));
+};
+
+/**
+ * @summary List soft-deleted vault items (trash)
+ */
+export const getListVaultTrashUrl = () => {
+  return `/api/vault/trash`;
+};
+
+export const listVaultTrash = async (
+  options?: RequestInit,
+): Promise<VaultTrashItem[]> => {
+  return customFetch<VaultTrashItem[]>(getListVaultTrashUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListVaultTrashQueryKey = () => {
+  return [`/api/vault/trash`] as const;
+};
+
+export const getListVaultTrashQueryOptions = <
+  TData = Awaited<ReturnType<typeof listVaultTrash>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listVaultTrash>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListVaultTrashQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listVaultTrash>>> = ({
+    signal,
+  }) => listVaultTrash({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listVaultTrash>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListVaultTrashQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listVaultTrash>>
+>;
+export type ListVaultTrashQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List soft-deleted vault items (trash)
+ */
+
+export function useListVaultTrash<
+  TData = Awaited<ReturnType<typeof listVaultTrash>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listVaultTrash>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListVaultTrashQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Restore a soft-deleted vault item
+ */
+export const getRestoreVaultItemUrl = (id: number) => {
+  return `/api/vault/${id}/restore`;
+};
+
+export const restoreVaultItem = async (
+  id: number,
+  options?: RequestInit,
+): Promise<VaultTrashItem> => {
+  return customFetch<VaultTrashItem>(getRestoreVaultItemUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRestoreVaultItemMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreVaultItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof restoreVaultItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["restoreVaultItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof restoreVaultItem>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return restoreVaultItem(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RestoreVaultItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof restoreVaultItem>>
+>;
+
+export type RestoreVaultItemMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Restore a soft-deleted vault item
+ */
+export const useRestoreVaultItem = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof restoreVaultItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof restoreVaultItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRestoreVaultItemMutationOptions(options));
+};
+
+/**
+ * @summary Permanently delete a vault item from trash
+ */
+export const getPermanentDeleteVaultItemUrl = (id: number) => {
+  return `/api/vault/${id}/permanent`;
+};
+
+export const permanentDeleteVaultItem = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getPermanentDeleteVaultItemUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getPermanentDeleteVaultItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof permanentDeleteVaultItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof permanentDeleteVaultItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["permanentDeleteVaultItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof permanentDeleteVaultItem>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return permanentDeleteVaultItem(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PermanentDeleteVaultItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof permanentDeleteVaultItem>>
+>;
+
+export type PermanentDeleteVaultItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Permanently delete a vault item from trash
+ */
+export const usePermanentDeleteVaultItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof permanentDeleteVaultItem>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof permanentDeleteVaultItem>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getPermanentDeleteVaultItemMutationOptions(options));
 };
 
 /**

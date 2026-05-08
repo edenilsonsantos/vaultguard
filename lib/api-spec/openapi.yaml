@@ -516,6 +516,61 @@ paths:
         "204":
           description: Deleted
 
+  /vault/trash:
+    get:
+      operationId: listVaultTrash
+      tags: [vault]
+      summary: List soft-deleted vault items (trash)
+      responses:
+        "200":
+          description: List of trashed vault items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VaultTrashItem"
+
+  /vault/{id}/restore:
+    post:
+      operationId: restoreVaultItem
+      tags: [vault]
+      summary: Restore a soft-deleted vault item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Restored vault item summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VaultTrashItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /vault/{id}/permanent:
+    delete:
+      operationId: permanentDeleteVaultItem
+      tags: [vault]
+      summary: Permanently delete a vault item from trash
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Permanently deleted
+
   /vault/byID/{id}:
     get:
       operationId: getVaultItemById
@@ -1145,6 +1200,52 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VaultEntry"
+
+    VaultTrashItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: ["string", "null"]
+        accessControl:
+          type: string
+        allowedHostsMode:
+          type: string
+        allowedHosts:
+          type: array
+          items:
+            type: string
+        entryCount:
+          type: integer
+        createdBy:
+          type: integer
+        createdByUsername:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        deletedAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - description
+        - accessControl
+        - allowedHostsMode
+        - allowedHosts
+        - entryCount
+        - createdBy
+        - createdByUsername
+        - createdAt
+        - updatedAt
+        - deletedAt
 
     VaultStats:
       type: object

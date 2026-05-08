@@ -12,6 +12,7 @@ import Dashboard from "@/pages/dashboard";
 import VaultList from "@/pages/vault/index";
 import VaultNew from "@/pages/vault/new";
 import VaultDetail from "@/pages/vault/[id]";
+import VaultTrash from "@/pages/vault/trash";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Logs from "@/pages/logs";
@@ -37,6 +38,9 @@ function Router() {
       </Route>
       <Route path="/vault/new">
         <ProtectedRoute><VaultNew /></ProtectedRoute>
+      </Route>
+      <Route path="/vault/trash">
+        <ProtectedRoute><VaultTrash /></ProtectedRoute>
       </Route>
       <Route path="/vault/:id">
         <ProtectedRoute><VaultDetail /></ProtectedRoute>

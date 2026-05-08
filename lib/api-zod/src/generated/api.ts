@@ -395,6 +395,56 @@ export const DeleteVaultItemParams = zod.object({
 });
 
 /**
+ * @summary List soft-deleted vault items (trash)
+ */
+export const ListVaultTrashResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  category: zod.string(),
+  description: zod.string().nullable(),
+  accessControl: zod.string(),
+  allowedHostsMode: zod.string(),
+  allowedHosts: zod.array(zod.string()),
+  entryCount: zod.number(),
+  createdBy: zod.number(),
+  createdByUsername: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  deletedAt: zod.string(),
+});
+export const ListVaultTrashResponse = zod.array(ListVaultTrashResponseItem);
+
+/**
+ * @summary Restore a soft-deleted vault item
+ */
+export const RestoreVaultItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RestoreVaultItemResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  category: zod.string(),
+  description: zod.string().nullable(),
+  accessControl: zod.string(),
+  allowedHostsMode: zod.string(),
+  allowedHosts: zod.array(zod.string()),
+  entryCount: zod.number(),
+  createdBy: zod.number(),
+  createdByUsername: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  deletedAt: zod.string(),
+});
+
+/**
+ * @summary Permanently delete a vault item from trash
+ */
+export const PermanentDeleteVaultItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Get a vault item by its numeric ID (explicit path, supports API key auth)
  */
 export const GetVaultItemByIdParams = zod.object({
