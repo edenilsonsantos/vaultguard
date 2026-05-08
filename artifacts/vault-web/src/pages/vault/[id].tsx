@@ -120,8 +120,8 @@ export default function VaultDetail() {
           toast({ title: "Excluído", description: "Item removido do vault." });
           setLocation("/vault");
         },
-        onError: () => {
-          toast({ variant: "destructive", title: "Erro ao excluir" });
+        onError: (err) => {
+          toast({ variant: "destructive", title: "Erro ao excluir", description: (err as any)?.data?.error || "Não foi possível remover o item." });
         },
       }
     );
@@ -236,59 +236,84 @@ export default function VaultDetail() {
                 </div>
               )}
 
-              {item.entries.map((entry, idx) => (
-                <div key={entry.key} className="flex flex-col space-y-2 p-4 bg-muted/50 rounded-lg border border-border">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-mono font-medium text-foreground">{entry.key}</span>
-                    {isCredential && !isEditing && (
-                      <Badge variant="outline" className="text-xs gap-1">
-                        <Lock className="h-3 w-3" />
-                        Somente via API
-                      </Badge>
-                    )}
-                  </div>
-
-                  {isEditing ? (
-                    <div className="space-y-1">
-                      <Input
-                        value={editEntries[idx]?.value ?? ""}
-                        onChange={(e) => {
-                          const updated = [...editEntries];
-                          updated[idx] = { ...updated[idx], value: e.target.value };
-                          setEditEntries(updated);
-                        }}
-                        className="font-mono text-sm bg-background"
-                        type={editCategory === "credencial" ? "password" : "text"}
-                        placeholder={isCredential ? "Novo valor (deixe vazio para manter atual)" : "Valor"}
-                      />
-                      {isCredential && (
-                        <p className="text-xs text-muted-foreground">Deixe vazio para manter o valor atual criptografado.</p>
-                      )}
+              {isEditing ? (
+                <>
+                  {editEntries.map((entry, idx) => (
+                    <div key={idx} className="flex flex-col space-y-2 p-4 bg-muted/50 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={entry.key}
+                          onChange={(e) => {
+                            const updated = [...editEntries];
+                            updated[idx] = { ...updated[idx], key: e.target.value };
+                            setEditEntries(updated);
+                          }}
+                          className="font-mono text-sm bg-background flex-1"
+                          placeholder="Chave"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => setEditEntries(editEntries.filter((_, i) => i !== idx))}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-1">
+                        <Input
+                          value={entry.value}
+                          onChange={(e) => {
+                            const updated = [...editEntries];
+                            updated[idx] = { ...updated[idx], value: e.target.value };
+                            setEditEntries(updated);
+                          }}
+                          className="font-mono text-sm bg-background"
+                          type={editCategory === "credencial" ? "password" : "text"}
+                          placeholder={editCategory === "credencial" ? "Novo valor (deixe vazio para manter atual)" : "Valor"}
+                        />
+                        {editCategory === "credencial" && (
+                          <p className="text-xs text-muted-foreground">Deixe vazio para manter o valor atual criptografado.</p>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="font-mono text-sm bg-background p-2 rounded border border-border overflow-x-auto">
-                      {isCredential ? (
-                        <span className="text-muted-foreground italic">
-                          ••••••••••••••• [Acesse via API para visualizar]
-                        </span>
-                      ) : (
-                        entry.value
-                      )}
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditEntries([...editEntries, { key: "", value: "" }])}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar entrada
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {item.entries.map((entry) => (
+                    <div key={entry.key} className="flex flex-col space-y-2 p-4 bg-muted/50 rounded-lg border border-border">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-mono font-medium text-foreground">{entry.key}</span>
+                        {isCredential && (
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Lock className="h-3 w-3" />
+                            Somente via API
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="font-mono text-sm bg-background p-2 rounded border border-border overflow-x-auto">
+                        {isCredential ? (
+                          <span className="text-muted-foreground italic">
+                            ••••••••••••••• [Acesse via API para visualizar]
+                          </span>
+                        ) : (
+                          entry.value
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
-
-              {isEditing && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setEditEntries([...editEntries, { key: "", value: "" }])}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar entrada
-                </Button>
+                  ))}
+                </>
               )}
             </CardContent>
           </Card>
